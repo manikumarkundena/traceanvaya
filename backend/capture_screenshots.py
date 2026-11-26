@@ -3,7 +3,7 @@ import subprocess
 
 CHROME_PATH = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
 OUTPUT_DIR = r"C:\Users\ragav\.gemini\antigravity\brain\2cc6cf64-1bdb-4e84-80f1-a6cbe15929e7"
-REPO_DOCS_DIR = r"C:\Users\ragav\.gemini\antigravity\scratch\traceanvaya\docs\screenshots"
+REPO_DOCS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "docs", "screenshots"))
 
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 os.makedirs(REPO_DOCS_DIR, exist_ok=True)
