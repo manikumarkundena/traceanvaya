@@ -6,9 +6,10 @@
   --background: #050807;
   --background-secondary: #080D0B;
   --foreground: #F4F4F5;
-  --surface: #101713;
-  --surface-elevated: #151E1A;
-  --border: #26382F;
+  --surface: #0E1512;
+  --surface-elevated: #141E19;
+  --border: #24362D;
+  --border-glow: rgba(94, 234, 212, 0.28);
   --accent: #5EEAD4;
   --emerald: #10B981;
   --accent-secondary: #D8B978;
@@ -17,6 +18,13 @@
   --warning: #FBBF24;
   --critical: #F87171;
   --muted: #A1A1AA;
+
+  /* Glossy & Glass Material Tokens */
+  --glass-bg: rgba(14, 21, 18, 0.72);
+  --glass-bg-elevated: rgba(20, 30, 25, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-highlight: rgba(255, 255, 255, 0.14);
+  --glass-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
 }
 
 .light {
@@ -36,6 +44,10 @@
   --muted: #64748B;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -44,45 +56,180 @@ body {
   min-height: 100vh;
 }
 
-/* Technical grid background */
-.tech-grid {
-  background-image: 
-    linear-gradient(to right, rgba(38, 56, 47, 0.45) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(38, 56, 47, 0.45) 1px, transparent 1px);
-  background-size: 32px 32px;
+/* Signature Editorial Typography Utilities */
+.font-editorial {
+  font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
+  letter-spacing: -0.03em;
 }
 
-/* Cinematic Emerald Light Ribbons */
-.light-ribbons {
-  background: 
-    repeating-linear-gradient(
-      -70deg,
-      transparent,
-      transparent 45px,
-      rgba(16, 185, 129, 0.04) 46px,
-      rgba(16, 185, 129, 0.09) 65px,
-      transparent 66px,
-      transparent 120px
-    ),
-    radial-gradient(ellipse 70% 60% at 85% 15%, rgba(16, 185, 129, 0.22) 0%, rgba(94, 234, 212, 0.08) 35%, transparent 75%);
+.hero-headline {
+  font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
+  font-size: clamp(2.75rem, 6.2vw, 5.25rem);
+  line-height: 1.03;
+  letter-spacing: -0.038em;
+}
+
+.section-heading {
+  font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
+  font-size: clamp(1.875rem, 3.6vw, 2.75rem);
+  line-height: 1.12;
+  letter-spacing: -0.028em;
+}
+
+/* Technical grid background */
+.tech-grid {
+  background-image:
+    linear-gradient(to right, rgba(38, 56, 47, 0.36) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(38, 56, 47, 0.36) 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
 /* Subtle edge vignette */
 .vignette-overlay {
-  background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(5, 8, 7, 0.85) 100%);
+  background: radial-gradient(circle at 50% 42%, transparent 48%, rgba(5, 8, 7, 0.88) 100%);
 }
 
 /* Ambient glow */
 .ambient-glow {
-  background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.12) 0%, rgba(5, 8, 7, 0) 70%);
+  background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.14) 0%, rgba(5, 8, 7, 0) 70%);
+}
+
+/* Precision Glass Surface */
+.glass-surface {
+  background: linear-gradient(
+    180deg,
+    rgba(22, 33, 28, 0.78) 0%,
+    rgba(12, 19, 16, 0.86) 100%
+  );
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  box-shadow: var(--glass-shadow);
+}
+
+/* Cinematic Background Animations (14s - 28s seamless cycles) */
+@keyframes ribbonDriftA {
+  0% {
+    transform: translate3d(-4%, -3%, 0) rotate(-66deg) scaleY(1);
+    opacity: 0.11;
+  }
+  50% {
+    transform: translate3d(3%, 2%, 0) rotate(-64deg) scaleY(1.06);
+    opacity: 0.2;
+  }
+  100% {
+    transform: translate3d(-4%, -3%, 0) rotate(-66deg) scaleY(1);
+    opacity: 0.11;
+  }
+}
+
+@keyframes ribbonDriftB {
+  0% {
+    transform: translate3d(3%, 2%, 0) rotate(-71deg) scaleY(1.04);
+    opacity: 0.08;
+  }
+  50% {
+    transform: translate3d(-3%, -2%, 0) rotate(-68deg) scaleY(0.96);
+    opacity: 0.16;
+  }
+  100% {
+    transform: translate3d(3%, 2%, 0) rotate(-71deg) scaleY(1.04);
+    opacity: 0.08;
+  }
+}
+
+@keyframes glowBreathe {
+  0%, 100% {
+    transform: scale(1) translate3d(0, 0, 0);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.08) translate3d(-1.5%, 1.5%, 0);
+    opacity: 0.85;
+  }
+}
+
+@keyframes lightSweep {
+  0% {
+    transform: translate3d(-120%, -20%, 0) rotate(-65deg);
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.14;
+  }
+  80% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: translate3d(140%, 30%, 0) rotate(-65deg);
+    opacity: 0;
+  }
+}
+
+@keyframes gradientShift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes marqueeScroll {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-ribbon-a {
+  animation: ribbonDriftA 18s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-ribbon-b {
+  animation: ribbonDriftB 24s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-glow-breathe {
+  animation: glowBreathe 14s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-light-sweep {
+  animation: lightSweep 22s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-gradient-shift {
+  background-size: 200% 200%;
+  animation: gradientShift 8s ease-in-out infinite;
+}
+
+.animate-marquee {
+  animation: marqueeScroll 32s linear infinite;
+  will-change: transform;
 }
 
 /* Respect reduced motion */
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
   *, ::before, ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+  .animate-ribbon-a,
+  .animate-ribbon-b,
+  .animate-glow-breathe,
+  .animate-light-sweep,
+  .animate-gradient-shift,
+  .animate-marquee {
+    animation: none !important;
   }
 }
 

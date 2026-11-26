@@ -32,6 +32,12 @@ const config: Config = {
         muted: "var(--muted)",
       },
       fontFamily: {
+        display: [
+          "var(--font-space-grotesk)",
+          "var(--font-geist-sans)",
+          "system-ui",
+          "sans-serif",
+        ],
         sans: [
           "var(--font-geist-sans)",
           "system-ui",

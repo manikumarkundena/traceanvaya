@@ -19,7 +19,7 @@ export function IncidentReplay({
 }: IncidentReplayProps) {
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-5 space-y-4 overflow-y-auto">
-      <div className="p-4 rounded-xl border border-border bg-surface-elevated space-y-3">
+      <div className="p-4 rounded-xl border border-white/[0.08] bg-surface-elevated space-y-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
         <div className="flex items-center justify-between font-mono text-xs">
           <span className="text-accent font-semibold flex items-center gap-1.5">
             <RotateCcw className="w-3.5 h-3.5" /> Chronological Event Replay
@@ -36,6 +36,7 @@ export function IncidentReplay({
           max={Math.max(0, evidenceList.length - 1)}
           value={replayIndex}
           onChange={(e) => onReplayIndexChange(Number(e.target.value))}
+          aria-label="Replay timeline scrubber"
           className="w-full accent-accent cursor-pointer"
         />
 
@@ -43,22 +44,25 @@ export function IncidentReplay({
         <div className="flex items-center justify-center gap-3 pt-2">
           <button
             onClick={() => onReplayIndexChange(Math.max(0, replayIndex - 1))}
-            className="p-2 rounded bg-surface hover:bg-border text-foreground transition-colors"
+            className="p-2 rounded-md bg-surface hover:bg-surface-elevated border border-white/[0.08] text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             title="Step backward"
+            aria-label="Step backward"
           >
             <StepBack className="w-4 h-4" />
           </button>
           <button
             onClick={onTogglePlay}
-            className="p-2.5 rounded-lg bg-accent text-background hover:bg-accent/90 transition-colors font-bold"
+            className="p-2.5 rounded-lg bg-accent text-background hover:bg-accent/90 active:scale-95 transition-all font-bold shadow-[0_6px_18px_-4px_rgba(94,234,212,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             title={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? "Pause replay" : "Play replay"}
           >
             {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
           </button>
           <button
             onClick={() => onReplayIndexChange(Math.min(evidenceList.length - 1, replayIndex + 1))}
-            className="p-2 rounded bg-surface hover:bg-border text-foreground transition-colors"
+            className="p-2 rounded-md bg-surface hover:bg-surface-elevated border border-white/[0.08] text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             title="Step forward"
+            aria-label="Step forward"
           >
             <StepForward className="w-4 h-4" />
           </button>
@@ -67,7 +71,7 @@ export function IncidentReplay({
 
       {/* Current Replayed Event Spotlight */}
       {evidenceList[replayIndex] && (
-        <div className="p-4 rounded-xl border border-accent/40 bg-background font-mono text-xs space-y-2 shadow-lg">
+        <div className="p-4 rounded-xl border border-accent/35 bg-background font-mono text-xs space-y-2 shadow-[0_10px_28px_-12px_rgba(94,234,212,0.2)] transition-all">
           <div className="flex items-center justify-between">
             <span className="font-bold text-accent text-sm">
               {evidenceList[replayIndex].id}
@@ -79,7 +83,7 @@ export function IncidentReplay({
           <div className="text-muted text-[11px]">
             Service: <span className="text-foreground">{evidenceList[replayIndex].service}</span> | Severity: <span className="text-critical">{evidenceList[replayIndex].severity}</span>
           </div>
-          <div className="p-3 rounded bg-surface border border-border text-foreground text-[11px] leading-relaxed">
+          <div className="p-3 rounded-lg bg-surface border border-white/[0.07] text-foreground text-[11px] leading-relaxed">
             {evidenceList[replayIndex].message}
           </div>
         </div>
@@ -95,12 +99,12 @@ export function IncidentReplay({
             <div
               key={item.id}
               onClick={() => onReplayIndexChange(idx)}
-              className={`p-2 rounded cursor-pointer transition-colors flex items-center justify-between ${
+              className={`p-2 rounded-md cursor-pointer transition-all flex items-center justify-between ${
                 idx === replayIndex
-                  ? "bg-accent/20 border border-accent/40 text-foreground font-bold"
+                  ? "bg-accent/18 border border-accent/40 text-foreground font-bold"
                   : idx < replayIndex
-                  ? "text-muted hover:text-foreground"
-                  : "text-muted/60 opacity-60"
+                  ? "text-muted hover:text-foreground hover:bg-surface-elevated/60"
+                  : "text-muted/60 opacity-60 hover:opacity-90"
               }`}
             >
               <div className="flex items-center gap-2 truncate">

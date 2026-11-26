@@ -11,12 +11,16 @@ import { IncidentReplay } from "@/components/workspace/IncidentReplay";
 import { PostmortemModal } from "@/components/workspace/PostmortemModal";
 
 function WorkspaceContent() {
-  const searchParams = useSearchParams();
-  const scenarioParam = searchParams.get("scenario") || "scenario-1";
+  const sessionId = "session-884";
+  const [currentScenario, setCurrentScenario] = useState<string>("scenario-1");
 
-  // Session & Scenario state
-  const [sessionId] = useState<string>("session-884");
-  const [currentScenario, setCurrentScenario] = useState<string>(scenarioParam);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const sc = params.get("scenario");
+      if (sc) setCurrentScenario(sc);
+    }
+  }, []);
   const [, setIsLoadingScenario] = useState<boolean>(false);
 
   // Investigation Canvas State (Shared State)
@@ -109,8 +113,14 @@ function WorkspaceContent() {
   const loadScenarioTelemetry = async (scenarioKey: string) => {
     setIsLoadingScenario(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/scenarios`);
-      if (res.ok) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 1200);
+
+      const res = await fetch(`http://127.0.0.1:8000/api/scenarios`, {
+        signal: controller.signal,
+      }).catch(() => null);
+
+      if (res && res.ok) {
         const scenarios = await res.json();
         const sc = scenarios.find((s: any) => s.id === scenarioKey);
         if (sc) {
@@ -124,8 +134,13 @@ function WorkspaceContent() {
         }
       }
 
-      const evRes = await fetch(`http://127.0.0.1:8000/api/scenarios/${scenarioKey}/evidence`);
-      if (evRes.ok) {
+      const evRes = await fetch(`http://127.0.0.1:8000/api/scenarios/${scenarioKey}/evidence`, {
+        signal: controller.signal,
+      }).catch(() => null);
+
+      clearTimeout(timeoutId);
+
+      if (evRes && evRes.ok) {
         const evData = await evRes.json();
         if (Array.isArray(evData) && evData.length > 0) {
           setEvidenceList(evData);
@@ -421,15 +436,15 @@ function WorkspaceContent() {
         />
 
         {/* Right: Tabbed Inspection Suite */}
-        <section className="w-full lg:w-[480px] xl:w-[540px] flex flex-col min-w-0 bg-surface border-l border-border">
+        <section className="w-full lg:w-[480px] xl:w-[540px] flex flex-col min-w-0 bg-surface border-l border-white/[0.08]">
           {/* Tab Switcher */}
-          <div className="h-10 border-b border-border bg-surface-elevated flex items-center justify-between px-3 flex-shrink-0">
+          <div className="h-10 border-b border-white/[0.08] bg-surface-elevated flex items-center justify-between px-3 flex-shrink-0">
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setActiveRightTab("canvas")}
-                className={`px-3 py-1.5 rounded text-xs font-mono font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   activeRightTab === "canvas"
-                    ? "bg-surface text-accent border border-border"
+                    ? "bg-surface text-accent border border-white/[0.1] shadow-sm"
                     : "text-muted hover:text-foreground"
                 }`}
               >
@@ -437,9 +452,9 @@ function WorkspaceContent() {
               </button>
               <button
                 onClick={() => setActiveRightTab("evidence")}
-                className={`px-3 py-1.5 rounded text-xs font-mono font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   activeRightTab === "evidence"
-                    ? "bg-surface text-accent border border-border"
+                    ? "bg-surface text-accent border border-white/[0.1] shadow-sm"
                     : "text-muted hover:text-foreground"
                 }`}
               >
@@ -447,9 +462,9 @@ function WorkspaceContent() {
               </button>
               <button
                 onClick={() => setActiveRightTab("replay")}
-                className={`px-3 py-1.5 rounded text-xs font-mono font-medium transition-colors ${
+                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   activeRightTab === "replay"
-                    ? "bg-surface text-accent border border-border"
+                    ? "bg-surface text-accent border border-white/[0.1] shadow-sm"
                     : "text-muted hover:text-foreground"
                 }`}
               >
@@ -506,18 +521,5 @@ function WorkspaceContent() {
 }
 
 export default function WorkspacePage() {
-  return (
-    <Suspense
-      fallback={
-        <div className="h-screen w-screen bg-background text-foreground flex items-center justify-center font-mono text-sm">
-          <div className="flex items-center gap-3">
-            <span className="w-3 h-3 rounded-full bg-accent animate-ping" />
-            <span>Loading TraceAnvaya Investigation Workspace...</span>
-          </div>
-        </div>
-      }
-    >
-      <WorkspaceContent />
-    </Suspense>
-  );
+  return <WorkspaceContent />;
 }

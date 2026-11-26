@@ -20,16 +20,16 @@ export function WorkspaceHeader({
   onOpenPostmortem,
 }: WorkspaceHeaderProps) {
   return (
-    <header className="h-14 border-b border-border bg-surface flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20">
+    <header className="h-14 border-b border-white/[0.08] bg-[#0C1411]/95 backdrop-blur-md flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20 shadow-sm">
       <div className="flex items-center gap-4">
-        <Link href="/" className="hover:opacity-85 transition-opacity">
+        <Link href="/" className="hover:opacity-85 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md">
           <Logo size={24} />
         </Link>
-        <div className="h-4 w-px bg-border hidden sm:block" />
+        <div className="h-4 w-px bg-white/[0.1] hidden sm:block" />
 
         {/* Incident title & status badge */}
         <div className="flex items-center gap-2.5">
-          <span className="font-semibold text-sm truncate max-w-[200px] sm:max-w-xs text-foreground">
+          <span className="font-semibold text-sm truncate max-w-[200px] sm:max-w-xs text-foreground font-sans">
             {canvasState.incident_title}
           </span>
           <span
@@ -43,7 +43,7 @@ export function WorkspaceHeader({
           >
             {canvasState.severity}
           </span>
-          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-elevated text-accent border border-border">
+          <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-elevated text-accent border border-white/[0.08]">
             {canvasState.status}
           </span>
         </div>
@@ -62,7 +62,7 @@ export function WorkspaceHeader({
           <select
             value={currentScenario}
             onChange={(e) => onScenarioChange(e.target.value)}
-            className="bg-surface-elevated border border-border text-xs rounded-md px-2.5 py-1.5 text-foreground font-mono focus:outline-none focus:border-accent cursor-pointer"
+            className="bg-[#0E1713] border border-white/[0.08] text-xs rounded-md px-2.5 py-1.5 text-foreground font-mono focus:outline-none focus:border-accent/80 focus:ring-1 focus:ring-accent/40 cursor-pointer transition-colors"
           >
             <option value="scenario-1">Scenario 1: DB Pool Exhaustion</option>
             <option value="scenario-2">Scenario 2: Gateway Timeout</option>
@@ -72,10 +72,10 @@ export function WorkspaceHeader({
 
         <button
           onClick={onOpenPostmortem}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-surface-elevated border border-border hover:bg-border text-foreground transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-[#111A16] border border-white/[0.08] hover:border-accent/40 hover:bg-[#16231D] text-foreground transition-all duration-150 active:scale-95 shadow-sm"
         >
           <FileText className="w-3.5 h-3.5 text-accent" />
-          <span className="hidden sm:inline">Postmortem Studio</span>
+          <span className="hidden sm:inline font-sans">Postmortem Studio</span>
         </button>
       </div>
     </header>
