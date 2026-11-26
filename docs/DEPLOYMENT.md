@@ -4,7 +4,7 @@ This guide covers deploying TraceAnvaya to production using:
 - **Frontend**: Vercel (Next.js 15 App Router + CopilotKit Runtime)
 - **Backend**: Render or Railway (FastAPI + Pydantic AI + Uvicorn)
 - **Database**: Neon (Managed PostgreSQL)
-- **Live AI**: Google Gemini API (`gemini-2.0-flash`)
+- **Live AI**: Google Gemini API (`gemini-3.5-flash-lite`)
 
 ---
 
@@ -34,7 +34,7 @@ This guide covers deploying TraceAnvaya to production using:
 | `DATABASE_URL` | Neon PostgreSQL URL | `postgresql+asyncpg://...` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins | `https://traceanvaya.vercel.app` |
 | `AI_PROVIDER` | LLM provider (`gemini` or `openai`) | `gemini` |
-| `AI_MODEL` | Model identifier | `gemini-2.0-flash` |
+| `AI_MODEL` | Model identifier | `gemini-3.5-flash-lite` |
 | `GEMINI_API_KEY` | Google AI Studio API key (omit for Demo Mode) | `AIza...` |
 | `RATE_LIMIT_PER_MINUTE` | Per-IP `/agent` request limit | `30` |
 

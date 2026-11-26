@@ -123,8 +123,22 @@ async def run_agent(request: Request) -> Response:
     state_deps = StateDeps(state=current_state)
 
     adapter = AGUIAdapter(agent=investigation_agent, run_input=run_input, accept=accept)
-    event_stream = adapter.run_stream(deps=state_deps)
-    return adapter.streaming_response(event_stream)
+    raw_stream = adapter.run_stream(deps=state_deps)
+
+    async def stream_with_state():
+        from ag_ui.core import EventType, StateSnapshotEvent
+
+        async for event in raw_stream:
+            evt_type = getattr(event, "type", None)
+            if evt_type == EventType.RUN_FINISHED or evt_type == "RUN_FINISHED":
+                evidence_store.update_state(session_id, state_deps.state)
+                yield StateSnapshotEvent(
+                    type=EventType.STATE_SNAPSHOT,
+                    snapshot=state_deps.state.model_dump(),
+                )
+            yield event
+
+    return adapter.streaming_response(stream_with_state())
 
 
 # ==============================================================================

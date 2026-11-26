@@ -355,10 +355,21 @@ function WorkspaceContent() {
     const controller = new AbortController();
     abortControllerRef.current = controller;
 
-    // Attempt real AG-UI SSE stream if live AI is configured
+    const formatLiveProviderError = (rawMessage: string, status?: number): string => {
+      const lower = rawMessage.toLowerCase();
+      if (status === 401 || status === 403 || lower.includes("api key") || lower.includes("unauthenticated")) {
+        return "**Authentication Error**: The configured AI provider key was rejected or is unauthorized. Please verify `GEMINI_API_KEY` on the backend.";
+      }
+      if (status === 429 || lower.includes("429") || lower.includes("quota") || lower.includes("resource_exhausted") || lower.includes("rate limit")) {
+        return "**Quota / Rate Limit Exceeded**: The AI provider rate limit or free-tier quota was reached. Please wait a moment and try again.";
+      }
+      return `**Live AI Provider Error**: ${rawMessage || "Unable to complete live agent inference."}`;
+    };
+
+    // Live AI Mode: route through CopilotKit Runtime (/api/copilotkit -> HttpAgent -> FastAPI /agent)
     if (backendOnline && aiMode === "live") {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/agent`, {
+        const res = await fetch("/api/copilotkit", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -366,98 +377,147 @@ function WorkspaceContent() {
           },
           signal: controller.signal,
           body: JSON.stringify({
-            threadId: sessionId,
-            runId: `run-${Date.now()}`,
-            state: canvasState,
-            messages: [
-              ...messages.map((m) => ({
-                id: m.id,
-                role: m.role === "system" ? "user" : m.role,
-                content: m.content,
-              })),
-              { id: userMsg.id, role: "user", content: text },
-            ],
-            tools: [],
-            context: [],
+            method: "agent/run",
+            params: { agentId: "incidentAgent" },
+            body: {
+              threadId: sessionId,
+              runId: `run-${Date.now()}`,
+              state: canvasState,
+              messages: [
+                ...messages.map((m) => ({
+                  id: m.id,
+                  role: m.role === "system" ? "user" : m.role,
+                  content: m.content,
+                })),
+                { id: userMsg.id, role: "user", content: text },
+              ],
+              tools: [],
+              context: [],
+              forwardedProps: {},
+            },
           }),
         });
 
-        if (res.ok && res.body) {
-          const reader = res.body.getReader();
-          const decoder = new TextDecoder();
-          let assistantText = "";
-          const invokedTools: Array<{ name: string; result: string }> = [];
-          const assistantMsgId = `msg-${Date.now() + 1}`;
-
+        if (!res.ok || !res.body) {
+          const errText = await res.text().catch(() => res.statusText);
           setMessages((prev) => [
             ...prev,
             {
-              id: assistantMsgId,
-              role: "assistant",
-              content: "",
+              id: `msg-err-${Date.now()}`,
+              role: "system",
+              content: formatLiveProviderError(errText, res.status),
               timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
             },
           ]);
-
-          let buffer = "";
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            buffer += decoder.decode(value, { stream: true });
-            const lines = buffer.split("\n");
-            buffer = lines.pop() || "";
-
-            for (const line of lines) {
-              if (!line.startsWith("data:")) continue;
-              const jsonStr = line.slice(5).trim();
-              if (!jsonStr || jsonStr === "[DONE]") continue;
-              try {
-                const evt = JSON.parse(jsonStr);
-                if (evt.type === "TEXT_MESSAGE_CONTENT" && evt.delta) {
-                  assistantText += evt.delta;
-                  setMessages((prev) =>
-                    prev.map((m) =>
-                      m.id === assistantMsgId ? { ...m, content: assistantText, tools: invokedTools } : m
-                    )
-                  );
-                } else if (evt.type === "TOOL_CALL_START" && evt.toolCallName) {
-                  invokedTools.push({ name: evt.toolCallName, result: "executed" });
-                } else if (evt.type === "STATE_SNAPSHOT" && evt.snapshot) {
-                  setCanvasState((prev) => ({ ...prev, ...evt.snapshot }));
-                } else if (evt.type === "STATE_DELTA" && Array.isArray(evt.delta)) {
-                  setCanvasState((prev) => {
-                    const next: Record<string, any> = { ...prev };
-                    for (const op of evt.delta) {
-                      const key = typeof op.path === "string" ? op.path.replace(/^\//, "").split("/")[0] : "";
-                      if (!key || !(key in next)) continue;
-                      if (op.op === "replace" || op.op === "add") {
-                        if (Array.isArray(next[key]) && op.path.includes("/-")) {
-                          next[key] = [...next[key], op.value];
-                        } else {
-                          next[key] = op.value;
-                        }
-                      } else if (op.op === "remove" && Array.isArray(next[key])) {
-                        next[key] = [];
-                      }
-                    }
-                    return next as InvestigationState;
-                  });
-                }
-              } catch {
-                // Ignore partial SSE JSON
-              }
-            }
-          }
-
           setIsGenerating(false);
           return;
         }
+
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantText = "";
+        const invokedTools: Array<{ name: string; result: string }> = [];
+        const assistantMsgId = `msg-${Date.now() + 1}`;
+        let streamError: string | null = null;
+
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: assistantMsgId,
+            role: "assistant",
+            content: "",
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+
+        let buffer = "";
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data:")) continue;
+            const jsonStr = line.slice(5).trim();
+            if (!jsonStr || jsonStr === "[DONE]") continue;
+            try {
+              const evt = JSON.parse(jsonStr);
+              if (evt.type === "RUN_ERROR") {
+                streamError = evt.message || "Agent execution failed.";
+              } else if (evt.type === "TEXT_MESSAGE_CONTENT" && evt.delta) {
+                assistantText += evt.delta;
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId ? { ...m, content: assistantText, tools: invokedTools } : m
+                  )
+                );
+              } else if (evt.type === "TOOL_CALL_START" && evt.toolCallName) {
+                invokedTools.push({ name: evt.toolCallName, result: "executed" });
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === assistantMsgId ? { ...m, tools: [...invokedTools] } : m
+                  )
+                );
+              } else if (evt.type === "STATE_SNAPSHOT" && evt.snapshot) {
+                setCanvasState((prev) => ({ ...prev, ...evt.snapshot }));
+              } else if (evt.type === "STATE_DELTA" && Array.isArray(evt.delta)) {
+                setCanvasState((prev) => {
+                  const next: Record<string, any> = { ...prev };
+                  for (const op of evt.delta) {
+                    const key = typeof op.path === "string" ? op.path.replace(/^\//, "").split("/")[0] : "";
+                    if (!key || !(key in next)) continue;
+                    if (op.op === "replace" || op.op === "add") {
+                      if (Array.isArray(next[key]) && op.path.includes("/-")) {
+                        next[key] = [...next[key], op.value];
+                      } else {
+                        next[key] = op.value;
+                      }
+                    } else if (op.op === "remove" && Array.isArray(next[key])) {
+                      next[key] = [];
+                    }
+                  }
+                  return next as InvestigationState;
+                });
+              }
+            } catch {
+              // Ignore partial SSE JSON
+            }
+          }
+        }
+
+        if (streamError) {
+          setMessages((prev) => [
+            ...prev.filter((m) => m.id !== assistantMsgId || m.content.trim().length > 0),
+            {
+              id: `msg-err-${Date.now()}`,
+              role: "system",
+              content: formatLiveProviderError(streamError),
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            },
+          ]);
+        }
+
+        setIsGenerating(false);
+        return;
       } catch (err: any) {
         if (err?.name === "AbortError") {
           setIsGenerating(false);
           return;
         }
-        // Fall through to deterministic demo mode on network error
+        // Do NOT silently fall back to deterministic demo mode on live failure
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `msg-err-${Date.now()}`,
+            role: "system",
+            content: formatLiveProviderError(err?.message || "Network error reaching CopilotKit runtime."),
+            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          },
+        ]);
+        setIsGenerating(false);
+        return;
       }
     }
 

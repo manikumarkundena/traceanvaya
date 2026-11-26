@@ -10,7 +10,7 @@ class Settings(BaseSettings):
 
     # AI Configuration
     AI_PROVIDER: str = "gemini"  # "gemini" or "openai" or "test"
-    AI_MODEL: str = "gemini-2.0-flash"
+    AI_MODEL: str = "gemini-3.5-flash-lite"
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
 
@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite+aiosqlite:///./traceanvaya.db"
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(".env", "../.env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )

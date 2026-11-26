@@ -44,7 +44,7 @@ TraceAnvaya enforces a strict Human Approval Gate:
 ## 4. Model Selection & Fallback Architecture
 
 TraceAnvaya is configured to run with:
-- **Primary**: Google Gemini (`gemini-2.0-flash` or `gemini-1.5-pro`) via `google-gla`.
+- **Primary**: Google Gemini (`gemini-3.5-flash-lite`) via Pydantic AI `GoogleModel` / `GoogleProvider`.
 - **Secondary**: OpenAI (`gpt-4o`) via `openai`.
 - **Deterministic Test Mode**: Pydantic AI's `TestModel` for automated unit and integration tests.
 This ensures the platform can be comprehensively verified in zero-cost, offline CI environments without requiring external API keys.

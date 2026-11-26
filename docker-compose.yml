@@ -33,7 +33,7 @@ services:
       - HOST=0.0.0.0
       - DATABASE_URL=postgresql+asyncpg://traceanvaya:traceanvaya_password@postgres:5432/traceanvaya
       - AI_PROVIDER=gemini
-      - AI_MODEL=gemini-2.0-flash
+      - AI_MODEL=gemini-3.5-flash-lite
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
     depends_on:
