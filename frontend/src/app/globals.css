@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #040806;
-  --background-secondary: #070D0A;
-  --foreground: #F4F4F6;
-  --surface: #0B1310;
-  --surface-elevated: #111C17;
-  --border: #22352B;
-  --border-glow: rgba(94, 234, 212, 0.35);
+  --background: #060908;
+  --background-secondary: #0A0F0D;
+  --foreground: #EDEDEF;
+  --surface: #0E1512;
+  --surface-elevated: #131E19;
+  --border: #1E2E25;
+  --border-muted: #17241D;
   --accent: #5EEAD4;
   --emerald: #10B981;
   --accent-secondary: #D8B978;
@@ -17,14 +17,11 @@
   --success: #34D399;
   --warning: #FBBF24;
   --critical: #F87171;
-  --muted: #A3A3AC;
+  --muted: #94A3B8;
 
-  /* Glossy & Glass Material Tokens */
-  --glass-bg: rgba(11, 19, 16, 0.78);
-  --glass-bg-elevated: rgba(17, 28, 23, 0.88);
-  --glass-border: rgba(255, 255, 255, 0.09);
-  --glass-highlight: rgba(255, 255, 255, 0.18);
-  --glass-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
+  /* Restrained Card & Material Tokens (85% Neutral Carbon, 15% Emerald) */
+  --card-bg: #0C1310;
+  --card-border: #1E2D24;
 }
 
 .light {
@@ -56,131 +53,94 @@ body {
   min-height: 100vh;
 }
 
-/* Fallback visibility guarantee: all text remains visible if animation/observer pauses */
+/* Fallback visibility guarantee: all content remains 100% visible */
 .motion-safe-reveal {
   opacity: 1 !important;
   visibility: visible !important;
 }
 
 /* Signature Editorial Typography Utilities */
-.font-editorial {
-  font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-  letter-spacing: -0.035em;
-}
-
 .hero-headline {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-  font-size: clamp(3.2rem, 7.2vw, 6.2rem);
-  line-height: 1.02;
-  letter-spacing: -0.042em;
+  font-size: clamp(3rem, 6.8vw, 5.8rem);
+  line-height: 1.05;
+  letter-spacing: -0.04em;
 }
 
 .section-heading {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-  font-size: clamp(2.1rem, 4.4vw, 3.2rem);
-  line-height: 1.1;
-  letter-spacing: -0.032em;
+  font-size: clamp(1.85rem, 3.8vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
 }
 
-/* Technical grid background with coordinate lines */
+/* Technical grid background */
 .tech-grid {
   background-image:
-    linear-gradient(to right, rgba(38, 56, 47, 0.42) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(38, 56, 47, 0.42) 1px, transparent 1px);
-  background-size: 38px 38px;
+    linear-gradient(to right, rgba(30, 46, 37, 0.4) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 46, 37, 0.4) 1px, transparent 1px);
+  background-size: 36px 36px;
 }
 
-/* Diagonal Emerald Shafts Background Texture */
+/* Diagonal Emerald Shafts Texture (Hero Only) */
 .shafts-layer {
   background:
     repeating-linear-gradient(
       -68deg,
       transparent,
-      transparent 90px,
-      rgba(16, 185, 129, 0.05) 91px,
-      rgba(94, 234, 212, 0.12) 125px,
-      rgba(16, 185, 129, 0.04) 145px,
-      transparent 146px,
-      transparent 260px
+      transparent 80px,
+      rgba(16, 185, 129, 0.04) 81px,
+      rgba(94, 234, 212, 0.09) 110px,
+      rgba(16, 185, 129, 0.03) 130px,
+      transparent 131px,
+      transparent 240px
     );
 }
 
-/* Edge vignette preserving headline contrast while letting shafts emanate */
+/* Edge vignette */
 .vignette-overlay {
-  background: radial-gradient(ellipse 95% 85% at 50% 40%, transparent 42%, rgba(4, 8, 6, 0.82) 85%, rgba(4, 8, 6, 0.98) 100%);
+  background: radial-gradient(ellipse 95% 85% at 50% 35%, transparent 45%, rgba(6, 9, 8, 0.85) 88%, rgba(6, 9, 8, 1) 100%);
 }
 
-/* Ambient glow */
-.ambient-glow {
-  background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.18) 0%, rgba(5, 8, 7, 0) 70%);
-}
-
-/* Precision Glass Surface */
-.glass-surface {
-  background: linear-gradient(
-    180deg,
-    rgba(22, 36, 29, 0.82) 0%,
-    rgba(11, 18, 15, 0.92) 100%
-  );
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  box-shadow: var(--glass-shadow);
-}
-
-/* Cinematic Diagonal Emerald Shaft Animations */
+/* Hero-only Continuous Motion Animations */
 @keyframes shaftDriftA {
   0% {
-    transform: translate3d(-3%, -2%, 0) rotate(-65deg) scaleY(1);
-    opacity: 0.32;
+    transform: translate3d(-3%, -2%, 0) rotate(-65deg);
+    opacity: 0.28;
   }
   50% {
-    transform: translate3d(2%, 2%, 0) rotate(-63deg) scaleY(1.08);
-    opacity: 0.52;
+    transform: translate3d(2%, 2%, 0) rotate(-63deg);
+    opacity: 0.46;
   }
   100% {
-    transform: translate3d(-3%, -2%, 0) rotate(-65deg) scaleY(1);
-    opacity: 0.32;
+    transform: translate3d(-3%, -2%, 0) rotate(-65deg);
+    opacity: 0.28;
   }
 }
 
 @keyframes shaftDriftB {
   0% {
-    transform: translate3d(2%, 2%, 0) rotate(-70deg) scaleY(1.06);
-    opacity: 0.28;
+    transform: translate3d(2%, 2%, 0) rotate(-70deg);
+    opacity: 0.22;
   }
   50% {
-    transform: translate3d(-3%, -2%, 0) rotate(-67deg) scaleY(0.96);
-    opacity: 0.48;
+    transform: translate3d(-2%, -2%, 0) rotate(-67deg);
+    opacity: 0.40;
   }
   100% {
-    transform: translate3d(2%, 2%, 0) rotate(-70deg) scaleY(1.06);
-    opacity: 0.28;
-  }
-}
-
-@keyframes shaftDriftC {
-  0% {
-    transform: translate3d(-2%, 2%, 0) rotate(-64deg) scaleY(0.98);
-    opacity: 0.24;
-  }
-  50% {
-    transform: translate3d(3%, -2%, 0) rotate(-62deg) scaleY(1.04);
-    opacity: 0.44;
-  }
-  100% {
-    transform: translate3d(-2%, 2%, 0) rotate(-64deg) scaleY(0.98);
-    opacity: 0.24;
+    transform: translate3d(2%, 2%, 0) rotate(-70deg);
+    opacity: 0.22;
   }
 }
 
 @keyframes glowBreathe {
   0%, 100% {
     transform: scale(1) translate3d(0, 0, 0);
-    opacity: 0.65;
+    opacity: 0.55;
   }
   50% {
-    transform: scale(1.1) translate3d(-2%, 2%, 0);
-    opacity: 0.92;
+    transform: scale(1.08) translate3d(-1.5%, 1.5%, 0);
+    opacity: 0.8;
   }
 }
 
@@ -190,23 +150,14 @@ body {
     opacity: 0;
   }
   20% {
-    opacity: 0.25;
+    opacity: 0.18;
   }
   80% {
-    opacity: 0.2;
+    opacity: 0.16;
   }
   100% {
     transform: translate3d(150%, 30%, 0) rotate(-66deg);
     opacity: 0;
-  }
-}
-
-@keyframes gradientShift {
-  0%, 100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
   }
 }
 
@@ -229,11 +180,6 @@ body {
   will-change: transform, opacity;
 }
 
-.animate-shaft-c {
-  animation: shaftDriftC 20s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-
 .animate-glow-breathe {
   animation: glowBreathe 12s ease-in-out infinite;
   will-change: transform, opacity;
@@ -242,11 +188,6 @@ body {
 .animate-light-sweep {
   animation: lightSweep 18s ease-in-out infinite;
   will-change: transform, opacity;
-}
-
-.animate-gradient-shift {
-  background-size: 200% 200%;
-  animation: gradientShift 6s ease-in-out infinite;
 }
 
 .animate-marquee {
@@ -266,16 +207,14 @@ body {
   }
   .animate-shaft-a,
   .animate-shaft-b,
-  .animate-shaft-c,
   .animate-glow-breathe,
   .animate-light-sweep,
-  .animate-gradient-shift,
   .animate-marquee {
     animation: none !important;
   }
 }
 
-/* Custom scrollbar for terminals */
+/* Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

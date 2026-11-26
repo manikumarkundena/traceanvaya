@@ -51,12 +51,12 @@ export function WorkflowWalkthrough() {
   return (
     <section
       id="workflow"
-      className="py-24 sm:py-32 border-t border-white/[0.08] bg-surface/30 px-4 sm:px-6 relative overflow-hidden"
+      className="py-24 sm:py-32 border-t border-white/[0.08] bg-[#070B09] px-4 sm:px-6 relative overflow-hidden"
     >
       <div className="max-w-7xl mx-auto">
         {/* Guaranteed 100% visible Section Heading */}
         <div className="text-center max-w-2xl mx-auto mb-16 sm:mb-20">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-elevated border border-white/[0.08] text-xs font-mono text-accent uppercase tracking-widest mb-4 shadow-sm">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-muted uppercase tracking-widest mb-4">
             <Compass className="w-3.5 h-3.5 text-accent" />
             <span>The Investigation Lifecycle</span>
           </div>
@@ -69,43 +69,41 @@ export function WorkflowWalkthrough() {
         </div>
 
         <div className="relative">
-          {/* Desktop horizontal technical connector line + continuous travelling signal */}
+          {/* Desktop horizontal technical connector line */}
           <div
             aria-hidden="true"
-            className="hidden lg:block absolute top-12 left-[8%] right-[8%] h-0.5 bg-gradient-to-r from-transparent via-white/[0.14] to-transparent z-0 overflow-hidden"
+            className="hidden lg:block absolute top-12 left-[10%] right-[10%] h-px bg-white/[0.08] z-0 overflow-hidden"
           >
             {!prefersReducedMotion && (
               <motion.div
-                className="h-full w-40 bg-gradient-to-r from-transparent via-accent to-transparent"
-                animate={{ x: ["-20%", "720%"] }}
-                transition={{ duration: 4.8, repeat: Infinity, ease: "linear" }}
+                className="h-full w-32 bg-gradient-to-r from-transparent via-accent/60 to-transparent"
+                animate={{ x: ["-30%", "750%"] }}
+                transition={{ duration: 5.5, repeat: Infinity, ease: "linear" }}
               />
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 relative z-10">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 relative z-10">
             {LIFECYCLE_STEPS.map((item) => {
               const Icon = item.icon;
               return (
                 <div key={item.step} className="h-full">
-                  <GlassCard spotlight className="p-6 h-full">
-                    <div className="flex flex-col justify-between h-full space-y-4">
-                      <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <div className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent shadow-[inset_0_1px_0_0_rgba(94,234,212,0.25)]">
-                            <Icon className="w-5 h-5" />
-                          </div>
-                          <span className="text-xs font-mono text-accent font-bold px-2 py-0.5 rounded bg-accent/10 border border-accent/20">
-                            STAGE {item.step}
-                          </span>
+                  <GlassCard className="p-5 sm:p-6 h-full flex flex-col justify-between space-y-4 hover:border-white/[0.14] transition-colors">
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">
+                          <Icon className="w-4 h-4 text-accent" />
                         </div>
-                        <h4 className="text-lg font-bold text-foreground mb-2 font-display tracking-tight">
-                          {item.name}
-                        </h4>
-                        <p className="text-xs sm:text-sm text-muted leading-relaxed font-sans">
-                          {item.desc}
-                        </p>
+                        <span className="text-xs font-mono text-muted font-semibold tracking-wider">
+                          {item.step}
+                        </span>
                       </div>
+                      <h4 className="text-base font-bold text-foreground mb-2 font-display tracking-tight">
+                        {item.name}
+                      </h4>
+                      <p className="text-xs sm:text-[13px] text-muted leading-relaxed font-sans">
+                        {item.desc}
+                      </p>
                     </div>
                   </GlassCard>
                 </div>
