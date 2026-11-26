@@ -21,7 +21,7 @@ import app.models.entities  # Ensure all models are loaded
 config = context.config
 
 # Override sqlalchemy.url with dynamic application setting
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+config.set_main_option("sqlalchemy.url", settings.async_database_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:

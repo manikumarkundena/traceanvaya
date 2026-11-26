@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
 
+    # Public demo & request safeguards
+    RATE_LIMIT_PER_MINUTE: int = 30
+    MAX_AGENT_BODY_BYTES: int = 131072  # 128 KB
+
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./traceanvaya.db"
 
@@ -26,6 +30,16 @@ class Settings(BaseSettings):
     @property
     def cors_origin_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",") if origin.strip()]
+
+    @property
+    def async_database_url(self) -> str:
+        """Normalize managed PostgreSQL URLs (Neon/Render/Railway) for SQLAlchemy asyncpg."""
+        url = self.DATABASE_URL.strip()
+        if url.startswith("postgres://"):
+            url = "postgresql+asyncpg://" + url[len("postgres://"):]
+        elif url.startswith("postgresql://") and "+asyncpg" not in url:
+            url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+        return url
 
 
 settings = Settings()

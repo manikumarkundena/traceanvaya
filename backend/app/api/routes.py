@@ -1,5 +1,7 @@
 import json
 import os
+import time
+from collections import defaultdict
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, File, HTTPException, Request, Response, UploadFile, status
@@ -43,6 +45,22 @@ async def health_check():
 # AG-UI PROTOCOL INTEGRATION (CopilotKit / AG-UI client endpoint)
 # ==============================================================================
 
+# Lightweight per-IP sliding window rate limiter for public demo protection
+_agent_rate_buckets: Dict[str, List[float]] = defaultdict(list)
+
+
+def _check_rate_limit(client_ip: str) -> bool:
+    now = time.monotonic()
+    window_start = now - 60.0
+    timestamps = [ts for ts in _agent_rate_buckets[client_ip] if ts > window_start]
+    if len(timestamps) >= settings.RATE_LIMIT_PER_MINUTE:
+        _agent_rate_buckets[client_ip] = timestamps
+        return False
+    timestamps.append(now)
+    _agent_rate_buckets[client_ip] = timestamps
+    return True
+
+
 @router.post("/agent")
 async def run_agent(request: Request) -> Response:
     """
@@ -51,8 +69,22 @@ async def run_agent(request: Request) -> Response:
     and streams AG-UI protocol events (RUN_STARTED, TEXT_DELTA, TOOL_CALL_START, STATE_UPDATE, etc.)
     back to CopilotKit or any AG-UI compliant client.
     """
+    client_ip = request.client.host if request.client else "unknown"
+    if not _check_rate_limit(client_ip):
+        return Response(
+            content=json.dumps({"error": "Rate limit exceeded. Please wait before retrying."}),
+            media_type="application/json",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
     accept = request.headers.get("accept", "text/event-stream")
     body = await request.body()
+    if len(body) > settings.MAX_AGENT_BODY_BYTES:
+        return Response(
+            content=json.dumps({"error": "Request payload exceeds maximum allowed size."}),
+            media_type="application/json",
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        )
 
     try:
         run_input = AGUIAdapter.build_run_input(body)

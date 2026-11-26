@@ -46,7 +46,7 @@ const SCENARIOS = [
 
 export function ScenarioShowcase() {
   return (
-    <section id="scenarios" className="py-24 sm:py-32 border-t border-white/[0.08] bg-[#070B09] px-4 sm:px-6 relative">
+    <section id="scenarios" className="scroll-mt-24 py-24 sm:py-32 border-t border-white/[0.08] bg-[#070B09] px-4 sm:px-6 relative">
       <div className="max-w-7xl mx-auto">
         {/* Guaranteed 100% visible Section Heading */}
         <div className="text-center max-w-2xl mx-auto mb-16 sm:mb-20">

@@ -35,7 +35,7 @@ export function ArchitectureDiagram() {
   }, [prefersReducedMotion]);
 
   return (
-    <section id="architecture" className="py-24 sm:py-32 px-4 sm:px-6 max-w-7xl mx-auto w-full relative">
+    <section id="architecture" className="scroll-mt-24 py-24 sm:py-32 px-4 sm:px-6 max-w-7xl mx-auto w-full relative">
       {/* Guaranteed 100% visible Section Heading */}
       <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-muted uppercase tracking-widest mb-4">

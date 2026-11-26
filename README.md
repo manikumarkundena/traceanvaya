@@ -149,3 +149,13 @@ npx playwright test tests/workspace.spec.ts tests/stage31-motion.spec.ts
 - **Synthetic Environment**: TraceAnvaya is an educational and diagnostic simulation platform. Approving a remediation plan records an operator decision in the audit log (`Simulated Mitigation`) and never executes shell commands or modifies live infrastructure.
 - **In-Memory Session Store**: Active session evidence and state are stored in `EvidenceStore` for fast AG-UI state synchronization alongside SQLAlchemy/Alembic relational models.
 - **Live LLM Dependency**: Real natural-language reasoning beyond the built-in deterministic demo scenarios requires a valid `GEMINI_API_KEY` or `OPENAI_API_KEY`.
+
+---
+
+## Documentation
+
+- [Deployment Guide](docs/DEPLOYMENT.md) — Vercel, Render/Railway, Neon PostgreSQL, and Docker Compose setup.
+- [Developer Handover Guide](docs/DEVELOPER_GUIDE.md) — Beginner-friendly walkthrough of folders, AG-UI data flow, and troubleshooting.
+- [Architecture Blueprint](docs/ARCHITECTURE.md)
+- [AG-UI Protocol Specification](docs/AGENT_PROTOCOL.md)
+

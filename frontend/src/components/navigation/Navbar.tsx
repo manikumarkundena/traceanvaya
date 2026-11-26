@@ -61,26 +61,26 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
     <header className="sticky top-0 z-50 w-full px-4 sm:px-6 pt-3 pb-2 pointer-events-none">
       <div
         className={cn(
-          "max-w-6xl mx-auto flex h-13 items-center justify-between px-4 sm:px-6 rounded-xl pointer-events-auto transition-all duration-200",
+          "max-w-7xl mx-auto flex h-16 sm:h-[68px] items-center justify-between px-5 sm:px-7 rounded-2xl pointer-events-auto transition-all duration-200 relative overflow-hidden",
           "backdrop-blur-md border",
           scrolled
-            ? "bg-[#0A100D]/90 border-white/[0.1] shadow-lg shadow-black/40"
-            : "bg-[#0C1310]/70 border-white/[0.06]"
+            ? "bg-[#090F0D]/90 border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_10px_30px_rgba(0,0,0,0.45)]"
+            : "bg-[#090F0D]/75 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.05)]"
         )}
       >
         {/* Brand Logo */}
         <Link
           href="/"
-          className="flex items-center hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-md"
+          className="flex items-center hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md"
         >
-          <Logo size={24} />
+          <Logo size={28} textClassName="text-[20px] sm:text-[21px]" />
         </Link>
 
-        {/* Desktop Navigation Links */}
+        {/* Desktop Navigation Links (14px sans-serif) */}
         {mode === "landing" ? (
           <nav
             aria-label="Primary"
-            className="hidden md:flex items-center gap-7 text-xs font-sans font-medium text-muted"
+            className="hidden md:flex items-center gap-8 text-sm font-sans font-medium text-slate-300"
           >
             {NAV_LINKS.map((item) => {
               const isActive = activeSection === item.id;
@@ -89,13 +89,13 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
                   key={item.id}
                   href={item.href}
                   className={cn(
-                    "py-1 transition-colors duration-200 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm",
-                    isActive ? "text-foreground font-semibold" : "hover:text-foreground"
+                    "py-1.5 transition-colors duration-200 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm",
+                    isActive ? "text-white font-semibold" : "hover:text-white"
                   )}
                 >
                   {item.label}
                   {isActive && (
-                    <span className="absolute -bottom-0.5 inset-x-0 h-0.5 bg-accent/80 rounded-full transition-all duration-200" />
+                    <span className="absolute -bottom-0.5 inset-x-0 h-0.5 bg-accent/85 rounded-full transition-all duration-200" />
                   )}
                 </a>
               );
@@ -103,28 +103,28 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
           </nav>
         ) : (
           <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-surface-elevated border border-border text-accent font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-              AG-UI Protocol Active
+            <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-surface-elevated border border-border text-accent font-sans">
+              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+              Workspace Active
             </span>
           </div>
         )}
 
-        {/* Right CTA & Mobile Toggle */}
-        <div className="flex items-center gap-2.5">
+        {/* Right CTA (40-42px height) & Mobile Toggle */}
+        <div className="flex items-center gap-3">
           <Link
             href="/workspace"
-            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent text-background hover:bg-accent/90 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="inline-flex items-center justify-center gap-2 h-10 sm:h-[42px] px-4 sm:px-5 rounded-xl text-sm font-semibold bg-accent text-[#050807] hover:bg-accent/90 active:scale-[0.98] transition-all duration-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <span className="hidden sm:inline">Launch </span>
             <span>Workspace</span>
-            <ArrowUpRight className="w-3.5 h-3.5" />
+            <ArrowUpRight className="w-4 h-4" />
           </Link>
 
           {mode === "landing" && (
             <button
               onClick={() => setMobileMenuOpen((prev) => !prev)}
-              className="p-1.5 rounded-md md:hidden text-muted hover:text-foreground hover:bg-surface-elevated transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              className="p-2 rounded-lg md:hidden text-muted hover:text-foreground hover:bg-white/[0.06] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
               aria-label="Toggle mobile menu"
               aria-expanded={mobileMenuOpen}
             >

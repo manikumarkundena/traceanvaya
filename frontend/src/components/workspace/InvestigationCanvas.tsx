@@ -239,9 +239,11 @@ export function InvestigationCanvas({
           <h4 className="text-xs font-semibold uppercase tracking-wider text-slate-300 font-sans">
             Remediation review
           </h4>
-          <span className={`text-[11px] px-2 py-0.5 rounded font-sans font-medium ${approvalBadge.cls}`}>
-            {approvalBadge.label}
-          </span>
+          {canvasState.proposed_remediations.length > 0 && (
+            <span className={`text-[11px] px-2 py-0.5 rounded font-sans font-medium ${approvalBadge.cls}`}>
+              {approvalBadge.label}
+            </span>
+          )}
         </div>
 
         {canvasState.proposed_remediations.length === 0 ? (

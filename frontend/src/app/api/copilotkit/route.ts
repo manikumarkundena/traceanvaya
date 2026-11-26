@@ -8,7 +8,10 @@ import { HttpAgent } from "@ag-ui/client";
 
 // Initialize CopilotRuntime with AG-UI HttpAgent pointing to FastAPI Pydantic AI backend
 const backendAgentUrl =
-  process.env.BACKEND_AGENT_URL || "http://127.0.0.1:8000/agent";
+  process.env.BACKEND_AGENT_URL ||
+  (process.env.NEXT_PUBLIC_API_URL
+    ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/agent`
+    : "http://127.0.0.1:8000/agent");
 
 const runtime = new CopilotRuntime({
   agents: {

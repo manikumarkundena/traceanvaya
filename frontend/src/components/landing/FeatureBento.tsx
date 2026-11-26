@@ -19,7 +19,7 @@ export function FeatureBento() {
   const [activeTab, setActiveTab] = useState<"findings" | "state">("findings");
 
   return (
-    <section id="features" className="py-20 sm:py-28 px-4 sm:px-6 max-w-7xl mx-auto w-full">
+    <section id="features" className="scroll-mt-24 py-20 sm:py-28 px-4 sm:px-6 max-w-7xl mx-auto w-full">
       {/* Section Header */}
       <div className="max-w-3xl mb-14 sm:mb-18">
         <span className="text-xs font-mono text-accent uppercase tracking-wider block mb-2">

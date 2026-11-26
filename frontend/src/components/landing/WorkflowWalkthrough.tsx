@@ -51,7 +51,7 @@ export function WorkflowWalkthrough() {
   return (
     <section
       id="workflow"
-      className="py-24 sm:py-32 border-t border-white/[0.08] bg-[#070B09] px-4 sm:px-6 relative overflow-hidden"
+      className="scroll-mt-24 py-24 sm:py-32 border-t border-white/[0.08] bg-[#070B09] px-4 sm:px-6 relative overflow-hidden"
     >
       <div className="max-w-7xl mx-auto">
         {/* Guaranteed 100% visible Section Heading */}

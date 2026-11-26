@@ -15,9 +15,27 @@ const spaceGrotesk = Space_Grotesk({
 export const metadata: Metadata = {
   title: "TraceAnvaya — Agentic Incident Investigation & Replay Platform",
   description:
-    "Every failure leaves a trace. Find the connection. Real-time incident intelligence powered by Pydantic AI, AG-UI, and CopilotKit.",
-  icons: {
-    icon: "/favicon.ico",
+    "Every failure leaves a trace. Find the connection. Investigate software failures with evidence-grounded AI, timeline replay, and human-gated remediation.",
+  openGraph: {
+    title: "TraceAnvaya — Agentic Incident Investigation & Replay Platform",
+    description:
+      "Investigate software failures with evidence-grounded AI, chronological timeline replay, and human-gated remediation.",
+    type: "website",
+    images: [
+      {
+        url: "/og-preview.png",
+        width: 1440,
+        height: 900,
+        alt: "TraceAnvaya Incident Investigation Platform",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "TraceAnvaya — Agentic Incident Investigation & Replay Platform",
+    description:
+      "Every failure leaves a trace. Find the connection.",
+    images: ["/og-preview.png"],
   },
 };
 

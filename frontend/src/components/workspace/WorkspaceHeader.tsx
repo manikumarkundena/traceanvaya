@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Check, FileText } from "lucide-react";
+import { Check, FileText, RotateCcw } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { InvestigationState } from "./types";
 
@@ -9,6 +9,7 @@ interface WorkspaceHeaderProps {
   stateSyncSuccess: boolean;
   currentScenario: string;
   onScenarioChange: (scenario: string) => void;
+  onResetInvestigation: () => void;
   onOpenPostmortem: () => void;
 }
 
@@ -32,6 +33,7 @@ export function WorkspaceHeader({
   stateSyncSuccess,
   currentScenario,
   onScenarioChange,
+  onResetInvestigation,
   onOpenPostmortem,
 }: WorkspaceHeaderProps) {
   return (
@@ -88,6 +90,17 @@ export function WorkspaceHeader({
           <option value="scenario-3">Scenario 3: Auth Rate Storm</option>
           <option value="custom">Custom / Empty Workspace</option>
         </select>
+
+        <button
+          type="button"
+          onClick={onResetInvestigation}
+          title="Reset investigation"
+          aria-label="Reset investigation"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#111915] border border-white/[0.1] hover:border-white/[0.2] text-muted hover:text-foreground transition-all duration-150 active:scale-[0.98] font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span className="hidden md:inline">Reset</span>
+        </button>
 
         <button
           type="button"

@@ -13,11 +13,13 @@ import {
   createInitialCanvasState,
 } from "@/components/workspace/scenarioData";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
+const BACKEND_URL =
+  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
+  (process.env.NODE_ENV === "development" ? "http://127.0.0.1:8000" : "");
 
 function WorkspaceContent() {
-  const sessionId = "session-884";
   const [currentScenario, setCurrentScenario] = useState<string>("scenario-1");
+  const sessionId = `session-${currentScenario}`;
   const [backendOnline, setBackendOnline] = useState<boolean>(false);
   const [aiMode, setAiMode] = useState<"live" | "demo">("demo");
 
@@ -31,6 +33,7 @@ function WorkspaceContent() {
 
   // Check backend health & AI provider availability
   useEffect(() => {
+    if (!BACKEND_URL) return;
     const checkHealth = async () => {
       try {
         const controller = new AbortController();
@@ -608,6 +611,27 @@ function WorkspaceContent() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
+  // Reset current scenario investigation cleanly
+  const handleResetInvestigation = async () => {
+    handleCancelGeneration();
+    await loadScenarioTelemetry(currentScenario);
+    if (BACKEND_URL) {
+      const freshState = createInitialCanvasState(sessionId, currentScenario);
+      try {
+        await fetch(
+          `${BACKEND_URL}/api/investigation/state?session_id=${sessionId}`,
+          {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(freshState),
+          }
+        );
+      } catch {
+        // Ignore offline reset
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen bg-[#060908] text-foreground overflow-hidden font-sans">
       {/* Workspace Header */}
@@ -616,6 +640,7 @@ function WorkspaceContent() {
         stateSyncSuccess={stateSyncSuccess}
         currentScenario={currentScenario}
         onScenarioChange={setCurrentScenario}
+        onResetInvestigation={handleResetInvestigation}
         onOpenPostmortem={handleOpenPostmortem}
       />
 
@@ -670,11 +695,11 @@ function WorkspaceContent() {
           />
         </div>
 
-        {/* Right: Tabbed Inspection Suite */}
+        {/* Right: Tabbed Inspection Suite (~40% width on desktop) */}
         <section
           className={`${
             mobilePanel !== "chat" ? "flex" : "hidden"
-          } lg:flex w-full lg:w-[460px] xl:w-[520px] flex-col min-w-0 bg-[#080D0B] border-l border-white/[0.08]`}
+          } lg:flex w-full lg:w-[42%] xl:w-[40%] max-w-[620px] min-w-0 lg:min-w-[380px] flex-col bg-[#080D0B] border-l border-white/[0.08] overflow-hidden`}
         >
           {/* Desktop Tab Switcher */}
           <div className="hidden lg:flex h-11 border-b border-white/[0.08] bg-[#0B110E] items-center justify-between px-3 flex-shrink-0">

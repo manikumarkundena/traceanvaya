@@ -4,11 +4,15 @@ from app.core.config import settings
 
 Base = declarative_base()
 
+db_url = settings.async_database_url
+is_sqlite = db_url.startswith("sqlite")
+
 # Configure async engine (supports SQLite async and PostgreSQL asyncpg)
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    db_url,
     echo=False,
     future=True,
+    **({} if is_sqlite else {"pool_pre_ping": True, "pool_size": 5, "max_overflow": 10}),
 )
 
 AsyncSessionLocal = async_sessionmaker(

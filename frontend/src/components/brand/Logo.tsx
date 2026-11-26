@@ -4,12 +4,14 @@ interface LogoProps {
   className?: string;
   size?: number;
   showWordmark?: boolean;
+  textClassName?: string;
 }
 
 export const Logo: React.FC<LogoProps> = ({
   className = "",
   size = 28,
   showWordmark = true,
+  textClassName = "text-lg",
 }) => {
   return (
     <div className={`flex items-center gap-2.5 select-none ${className}`}>
@@ -63,7 +65,7 @@ export const Logo: React.FC<LogoProps> = ({
       </svg>
 
       {showWordmark && (
-        <span className="font-semibold tracking-tight text-lg text-foreground flex items-center">
+        <span className={`font-semibold tracking-tight text-foreground flex items-center ${textClassName}`}>
           Trace<span className="text-accent">Anvaya</span>
         </span>
       )}

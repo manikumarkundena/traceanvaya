@@ -83,21 +83,30 @@ export function ChatPanel({
 
       {/* Chat Messages Scroll Area */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
-        {/* First-Use Onboarding Guide when no evidence is loaded */}
-        {!hasEvidence && (
-          <div className="p-5 rounded-xl border border-white/[0.08] bg-[#0D1411] space-y-3 max-w-2xl">
+        {/* First-Use Onboarding Guide (visible at start of investigation, hides naturally once user engages) */}
+        {messages.length <= 1 && (
+          <div className="p-4 sm:p-5 rounded-xl border border-white/[0.08] bg-[#0D1411] space-y-2.5 max-w-2xl">
             <h3 className="text-sm font-semibold text-foreground font-sans">
-              Welcome to TraceAnvaya
+              {hasEvidence ? "How to investigate this incident" : "Welcome to TraceAnvaya"}
             </h3>
             <p className="text-xs sm:text-sm text-muted leading-relaxed font-sans">
-              Investigate simulated production incidents grounded in application telemetry:
+              {hasEvidence
+                ? "Start by asking the investigator a question or choosing a suggested prompt below:"
+                : "Investigate simulated production incidents grounded in application telemetry:"}
             </p>
-            <ol className="list-decimal pl-5 space-y-1.5 text-xs sm:text-sm text-slate-300 font-sans">
-              <li>Select a demo incident from the header or upload a log file (<code className="font-mono text-accent">.log</code>, <code className="font-mono text-accent">.txt</code>, <code className="font-mono text-accent">.json</code>).</li>
-              <li>Ask the investigator to analyze the incident using natural language or the suggested prompts below.</li>
-              <li>Review evidence-backed findings and clickable citations in the Overview panel.</li>
-              <li>Step through the chronological Timeline and review proposed remediation actions.</li>
-              <li>Generate and export a structured Postmortem report.</li>
+            <ol className="list-decimal pl-5 space-y-1 text-xs sm:text-sm text-slate-300 font-sans">
+              {!hasEvidence && (
+                <li>
+                  Select a demo incident from the header or upload a log file (
+                  <code className="font-mono text-accent">.log</code>,{" "}
+                  <code className="font-mono text-accent">.txt</code>,{" "}
+                  <code className="font-mono text-accent">.json</code>).
+                </li>
+              )}
+              <li>Ask the investigator to analyze the error spike or identify the root cause.</li>
+              <li>Click any <code className="font-mono text-accent">[ev-XXX]</code> badge to inspect raw log evidence.</li>
+              <li>Step through the chronological Timeline and review proposed remediations.</li>
+              <li>Export a Markdown postmortem report from Postmortem Studio.</li>
             </ol>
           </div>
         )}

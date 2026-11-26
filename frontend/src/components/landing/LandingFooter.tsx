@@ -85,7 +85,7 @@ export function LandingFooter() {
               Implementation Details
             </span>
             <div className="text-xs text-muted space-y-1.5 font-mono">
-              <div>Version: v1.0.0 (Stage 3.3 Editorial)</div>
+              <div>Version: v1.0.0</div>
               <div>Stack: Next.js 15 &bull; FastAPI &bull; SQLite/PG</div>
               <div>License: MIT Open Source</div>
               <div className="text-zinc-300 font-semibold flex items-center gap-1.5 pt-1">
