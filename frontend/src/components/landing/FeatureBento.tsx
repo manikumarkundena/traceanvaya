@@ -35,7 +35,11 @@ export function FeatureBento() {
       </div>
 
       {/* Feature 1: Large Editorial Split Preview — AI Investigator */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#0A100E] p-6 sm:p-9 mb-12 sm:mb-16">
+      <div className="rounded-xl border border-white/[0.1] bg-gradient-to-b from-[#0F1714]/90 to-[#0A100E]/95 p-6 sm:p-9 mb-12 sm:mb-16 relative overflow-hidden shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_12px_32px_rgba(0,0,0,0.4)]">
+        <div
+          aria-hidden="true"
+          className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"
+        />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-5 space-y-4">
             <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center text-accent">
@@ -82,7 +86,11 @@ export function FeatureBento() {
       </div>
 
       {/* Feature 2: Alternating Split Layout — Shared State Canvas */}
-      <div className="rounded-xl border border-white/[0.08] bg-[#0A100E] p-6 sm:p-9 mb-12 sm:mb-16">
+      <div className="rounded-xl border border-white/[0.1] bg-gradient-to-b from-[#0F1714]/90 to-[#0A100E]/95 p-6 sm:p-9 mb-12 sm:mb-16 relative overflow-hidden shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_12px_32px_rgba(0,0,0,0.4)]">
+        <div
+          aria-hidden="true"
+          className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"
+        />
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           <div className="lg:col-span-7 order-2 lg:order-1">
             <div className="rounded-lg border border-white/[0.08] bg-[#060908] p-4 sm:p-5 font-mono text-xs space-y-3">

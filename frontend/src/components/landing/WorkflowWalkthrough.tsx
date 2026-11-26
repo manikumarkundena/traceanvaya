@@ -1,7 +1,7 @@
 "use client";
 
-import React from "react";
-import { motion, useReducedMotion } from "motion/react";
+import React, { useRef } from "react";
+import { motion, useReducedMotion, useScroll, useTransform } from "motion/react";
 import {
   FileInput,
   Search,
@@ -46,10 +46,19 @@ const LIFECYCLE_STEPS = [
 ] as const;
 
 export function WorkflowWalkthrough() {
+  const sectionRef = useRef<HTMLElement>(null);
   const prefersReducedMotion = useReducedMotion();
+
+  // Scroll-linked lifecycle progress fill
+  const { scrollYProgress } = useScroll({
+    target: sectionRef,
+    offset: ["start 75%", "center 45%"],
+  });
+  const progressWidth = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
 
   return (
     <section
+      ref={sectionRef}
       id="workflow"
       className="py-24 sm:py-32 border-t border-white/[0.08] bg-[#070B09] px-4 sm:px-6 relative overflow-hidden"
     >
@@ -69,18 +78,16 @@ export function WorkflowWalkthrough() {
         </div>
 
         <div className="relative">
-          {/* Desktop horizontal technical connector line */}
+          {/* Desktop horizontal technical connector line with scroll-linked progress */}
           <div
             aria-hidden="true"
             className="hidden lg:block absolute top-12 left-[10%] right-[10%] h-px bg-white/[0.08] z-0 overflow-hidden"
           >
-            {!prefersReducedMotion && (
-              <motion.div
-                className="h-full w-32 bg-gradient-to-r from-transparent via-accent/60 to-transparent"
-                animate={{ x: ["-30%", "750%"] }}
-                transition={{ duration: 5.5, repeat: Infinity, ease: "linear" }}
-              />
-            )}
+            {/* Scroll-Linked Active Rail */}
+            <motion.div
+              className="h-full bg-gradient-to-r from-accent via-emerald-400 to-teal-300 shadow-[0_0_8px_rgba(94,234,212,0.6)]"
+              style={{ width: prefersReducedMotion ? "100%" : progressWidth }}
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 relative z-10">
@@ -88,7 +95,7 @@ export function WorkflowWalkthrough() {
               const Icon = item.icon;
               return (
                 <div key={item.step} className="h-full">
-                  <GlassCard className="p-5 sm:p-6 h-full flex flex-col justify-between space-y-4 hover:border-white/[0.14] transition-colors">
+                  <GlassCard className="p-5 sm:p-6 h-full flex flex-col justify-between space-y-4 hover:border-white/[0.18] transition-all bg-gradient-to-b from-[#0F1713]/90 to-[#0A100E]/95 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
                     <div>
                       <div className="flex items-center justify-between mb-4">
                         <div className="w-9 h-9 rounded-lg bg-white/[0.04] border border-white/[0.08] flex items-center justify-center text-zinc-300">

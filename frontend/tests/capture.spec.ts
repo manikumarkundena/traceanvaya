@@ -12,8 +12,8 @@ const VIEWPORTS = [
   { name: "360x800", width: 360, height: 800 },
 ];
 
-test.describe("Stage 3.3 Editorial Minimalism & Cinematic Scroll Capture", () => {
-  const outputDir = path.resolve(__dirname, "../../screenshots/stage-3.3");
+test.describe("Stage 3.4 Balanced Art Direction & Visual Verification", () => {
+  const outputDir = path.resolve(__dirname, "../../screenshots/stage-3.4");
 
   test.beforeAll(async () => {
     if (!fs.existsSync(outputDir)) {
@@ -47,6 +47,16 @@ test.describe("Stage 3.3 Editorial Minimalism & Cinematic Scroll Capture", () =>
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await page.waitForTimeout(1000);
+
+    // Hero section alone
+    const hero = page.locator("section").first();
+    await hero.screenshot({ path: path.join(outputDir, "hero-1440x900.png") });
+
+    // Product showcase alone
+    const showcase = page.locator("[perspective\\:1200px]").first();
+    if (await showcase.isVisible()) {
+      await showcase.screenshot({ path: path.join(outputDir, "product-showcase-1440x900.png") });
+    }
 
     // Feature bento section
     const features = page.locator("#features");
@@ -117,7 +127,7 @@ test.describe("Stage 3.3 Editorial Minimalism & Cinematic Scroll Capture", () =>
     // Trigger state edit
     const input = page.locator("input[value='Database Connection Pool Exhaustion']");
     if (await input.isVisible()) {
-      await input.fill("Database Pool Exhaustion — Stage 3.3 Editorial");
+      await input.fill("Database Pool Exhaustion — Balanced Art Direction");
       await page.waitForTimeout(600);
     }
   });

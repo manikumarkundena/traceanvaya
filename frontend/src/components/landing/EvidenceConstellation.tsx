@@ -1,128 +1,220 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { motion, useReducedMotion } from "motion/react";
 
-interface ConstellationNode {
+/**
+ * Geometric nodes arranged in triangular mesh topology.
+ * Exclusively single emerald/mint color family, abstract and elegant.
+ * Zero text labels, zero severity colors, zero artificial pills.
+ */
+interface NodeCoord {
   id: string;
-  label: string;
   x: number;
   y: number;
   r: number;
-  color: string;
 }
 
-const NODES: ConstellationNode[] = [
-  { id: "ev-101", label: "ev-101", x: 340, y: 65, r: 4, color: "#60A5FA" },
-  { id: "ev-104", label: "ev-104", x: 235, y: 105, r: 4.5, color: "#FBBF24" },
-  { id: "ev-105", label: "ev-105", x: 315, y: 185, r: 5, color: "#F87171" },
-  { id: "ev-106", label: "ev-106", x: 175, y: 195, r: 4.5, color: "#F87171" },
-  { id: "ev-108", label: "ev-108", x: 255, y: 280, r: 4.5, color: "#34D399" },
-  { id: "ev-110", label: "ev-110", x: 375, y: 300, r: 5.5, color: "#5EEAD4" },
+const NODES: NodeCoord[] = [
+  { id: "n1", x: 260, y: 45, r: 3.5 },
+  { id: "n2", x: 380, y: 70, r: 4 },
+  { id: "n3", x: 440, y: 150, r: 3 },
+  { id: "n4", x: 330, y: 140, r: 4.5 },
+  { id: "n5", x: 210, y: 130, r: 3.5 },
+  { id: "n6", x: 150, y: 220, r: 3 },
+  { id: "n7", x: 250, y: 230, r: 4.5 },
+  { id: "n8", x: 360, y: 220, r: 4 },
+  { id: "n9", x: 420, y: 290, r: 3.5 },
+  { id: "n10", x: 310, y: 320, r: 4 },
+  { id: "n11", x: 200, y: 310, r: 3.5 },
+  { id: "n12", x: 260, y: 380, r: 3 },
 ];
 
-const PATHS = [
-  "M 340 65 L 235 105 L 315 185 L 255 280 L 375 300",
-  "M 235 105 L 175 195 L 255 280",
-  "M 340 65 L 315 185 L 375 300",
+// Triangular mesh faces for subtle translucent facet shading
+const TRIANGLES = [
+  "M 260 45 L 380 70 L 330 140 Z",
+  "M 260 45 L 330 140 L 210 130 Z",
+  "M 380 70 L 440 150 L 330 140 Z",
+  "M 440 150 L 360 220 L 330 140 Z",
+  "M 330 140 L 360 220 L 250 230 Z",
+  "M 210 130 L 330 140 L 250 230 Z",
+  "M 210 130 L 250 230 L 150 220 Z",
+  "M 150 220 L 250 230 L 200 310 Z",
+  "M 250 230 L 360 220 L 310 320 Z",
+  "M 250 230 L 310 320 L 200 310 Z",
+  "M 360 220 L 420 290 L 310 320 Z",
+  "M 200 310 L 310 320 L 260 380 Z",
+] as const;
+
+// Interconnected geometric edges
+const EDGES = [
+  "M 260 45 L 380 70",
+  "M 380 70 L 440 150",
+  "M 440 150 L 360 220",
+  "M 360 220 L 420 290",
+  "M 420 290 L 310 320",
+  "M 310 320 L 260 380",
+  "M 260 380 L 200 310",
+  "M 200 310 L 150 220",
+  "M 150 220 L 210 130",
+  "M 210 130 L 260 45",
+  "M 260 45 L 330 140",
+  "M 380 70 L 330 140",
+  "M 210 130 L 330 140",
+  "M 210 130 L 250 230",
+  "M 330 140 L 360 220",
+  "M 330 140 L 250 230",
+  "M 150 220 L 250 230",
+  "M 250 230 L 360 220",
+  "M 250 230 L 310 320",
+  "M 250 230 L 200 310",
+  "M 360 220 L 310 320",
+  "M 200 310 L 310 320",
+] as const;
+
+// Continuous luminous data signal corridors
+const SIGNAL_PATHS = [
+  "M 260 45 L 330 140 L 250 230 L 310 320 L 260 380",
+  "M 380 70 L 440 150 L 360 220 L 310 320 L 200 310",
+  "M 210 130 L 150 220 L 250 230 L 360 220 L 420 290",
 ] as const;
 
 export function EvidenceConstellation() {
   const prefersReducedMotion = useReducedMotion();
-  const [activePhase, setActivePhase] = useState(1);
-
-  useEffect(() => {
-    if (prefersReducedMotion) return;
-    const interval = setInterval(() => {
-      setActivePhase((prev) => (prev + 1) % NODES.length);
-    }, 2400);
-    return () => clearInterval(interval);
-  }, [prefersReducedMotion]);
 
   return (
-    <div
+    <motion.div
       aria-hidden="true"
-      className="absolute top-2 right-2 lg:right-10 w-72 h-72 sm:w-88 sm:h-88 lg:w-[420px] lg:h-[420px] pointer-events-none select-none z-0 opacity-80"
+      className="absolute -top-6 right-0 sm:right-4 lg:right-6 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[460px] pointer-events-none select-none z-0"
+      animate={
+        prefersReducedMotion
+          ? undefined
+          : {
+              y: [-6, 6, -6],
+              rotate: [-0.5, 0.5, -0.5],
+            }
+      }
+      transition={{
+        duration: 9,
+        repeat: Infinity,
+        ease: "easeInOut",
+      }}
     >
-      <svg viewBox="0 0 450 380" className="w-full h-full" fill="none">
+      <svg
+        viewBox="100 20 380 390"
+        className="w-full h-full overflow-visible"
+        fill="none"
+      >
         <defs>
-          <linearGradient id="restrainedTraceLine" x1="0%" y1="0%" x2="100%" y2="100%">
+          {/* Subtle gradient for interconnected mesh lines */}
+          <linearGradient id="emeraldMeshLine" x1="0%" y1="0%" x2="100%" y2="100%">
             <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
+            <stop offset="60%" stopColor="#10B981" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#059669" stopOpacity="0.08" />
           </linearGradient>
+
+          {/* Facet fill gradient */}
+          <linearGradient id="facetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.04" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0.01" />
+          </linearGradient>
+
+          {/* Node radial glow */}
+          <radialGradient id="mintNodeGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.7" />
+            <stop offset="40%" stopColor="#10B981" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+          </radialGradient>
         </defs>
 
-        {/* Base Connection Paths */}
-        {PATHS.map((d, i) => (
+        {/* 1. Triangular geometric mesh facets */}
+        {TRIANGLES.map((d, i) => (
           <path
-            key={`base-${i}`}
+            key={`triangle-${i}`}
             d={d}
-            stroke="url(#restrainedTraceLine)"
-            strokeWidth="1.25"
-            strokeDasharray={i === 0 ? "4 4" : undefined}
+            fill="url(#facetGradient)"
+            stroke="none"
           />
         ))}
 
-        {/* Travelling Signals along Paths */}
+        {/* 2. Thin interconnected emerald lines */}
+        {EDGES.map((d, i) => (
+          <path
+            key={`edge-${i}`}
+            d={d}
+            stroke="url(#emeraldMeshLine)"
+            strokeWidth="1"
+            strokeOpacity="0.6"
+          />
+        ))}
+
+        {/* 3. Subtle travelling light signals along primary pathways */}
         {!prefersReducedMotion &&
-          PATHS.map((d, i) => (
+          SIGNAL_PATHS.map((d, i) => (
             <motion.path
               key={`signal-${i}`}
               d={d}
               stroke="#5EEAD4"
-              strokeWidth="2"
+              strokeWidth="1.75"
               strokeLinecap="round"
-              strokeDasharray="18 200"
-              initial={{ strokeDashoffset: 218, opacity: 0.2 }}
+              strokeDasharray="16 160"
+              initial={{ strokeDashoffset: 176, opacity: 0.15 }}
               animate={{
-                strokeDashoffset: [218, 0],
-                opacity: [0.2, 0.8, 0.2],
+                strokeDashoffset: [176, 0],
+                opacity: [0.2, 0.85, 0.2],
               }}
               transition={{
-                duration: 4.5 + i * 1.2,
+                duration: 4.8 + i * 1.4,
                 repeat: Infinity,
                 ease: "linear",
               }}
             />
           ))}
 
-        {/* Interconnected Evidence Nodes */}
-        {NODES.map((node, idx) => {
-          const isActive = activePhase === idx;
-          return (
-            <g key={node.id}>
-              {/* Subtle Core Halo */}
-              <circle
+        {/* 4. Small glowing mint nodes */}
+        {NODES.map((node, idx) => (
+          <g key={node.id}>
+            {/* Soft atmospheric halo */}
+            <circle
+              cx={node.x}
+              cy={node.y}
+              r={node.r * 2.8}
+              fill="url(#mintNodeGlow)"
+            />
+
+            {/* Pulsing outer boundary */}
+            {!prefersReducedMotion && (
+              <motion.circle
                 cx={node.x}
                 cy={node.y}
-                r={node.r * 2.8}
-                fill={node.color}
-                fillOpacity="0.12"
+                r={node.r * 1.8}
+                stroke="#5EEAD4"
+                strokeWidth="0.75"
+                fill="none"
+                animate={{
+                  r: [node.r * 1.4, node.r * 2.2, node.r * 1.4],
+                  opacity: [0.15, 0.45, 0.15],
+                }}
+                transition={{
+                  duration: 3 + (idx % 4) * 0.8,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                  delay: (idx * 0.25) % 2,
+                }}
               />
+            )}
 
-              {/* Core Node */}
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r={node.r}
-                fill={node.color}
-              />
-
-              {/* Monospace Identifier Label */}
-              <text
-                x={node.x + 8}
-                y={node.y + 3}
-                fill={isActive ? "#5EEAD4" : "#94A3B8"}
-                fontSize="10"
-                fontFamily="var(--font-geist-mono), monospace"
-                fontWeight={isActive ? "700" : "500"}
-              >
-                {node.label}
-              </text>
-            </g>
-          );
-        })}
+            {/* Crisp luminous core node */}
+            <circle
+              cx={node.x}
+              cy={node.y}
+              r={node.r}
+              fill="#5EEAD4"
+              className="drop-shadow-[0_0_6px_rgba(94,234,212,0.8)]"
+            />
+          </g>
+        ))}
       </svg>
-    </div>
+    </motion.div>
   );
 }

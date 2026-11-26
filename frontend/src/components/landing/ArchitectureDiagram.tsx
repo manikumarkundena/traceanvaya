@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { motion, useReducedMotion } from "motion/react";
+import React, { useEffect, useRef, useState } from "react";
+import { motion, useInView, useReducedMotion } from "motion/react";
 import {
   ArrowDown,
   ArrowUp,
@@ -23,19 +23,25 @@ const PROTOCOL_EVENTS = [
 ] as const;
 
 export function ArchitectureDiagram() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const isInView = useInView(sectionRef, { amount: 0.15 });
   const prefersReducedMotion = useReducedMotion();
   const [activeEventIndex, setActiveEventIndex] = useState(0);
 
   useEffect(() => {
-    if (prefersReducedMotion) return;
+    if (prefersReducedMotion || !isInView) return;
     const interval = setInterval(() => {
       setActiveEventIndex((prev) => (prev + 1) % PROTOCOL_EVENTS.length);
     }, 2400);
     return () => clearInterval(interval);
-  }, [prefersReducedMotion]);
+  }, [prefersReducedMotion, isInView]);
 
   return (
-    <section id="architecture" className="py-24 sm:py-32 px-4 sm:px-6 max-w-7xl mx-auto w-full relative">
+    <section
+      ref={sectionRef}
+      id="architecture"
+      className="py-24 sm:py-32 px-4 sm:px-6 max-w-7xl mx-auto w-full relative"
+    >
       {/* Guaranteed 100% visible Section Heading */}
       <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/[0.04] border border-white/[0.08] text-[11px] font-mono text-muted uppercase tracking-widest mb-4">
@@ -51,7 +57,13 @@ export function ArchitectureDiagram() {
         </p>
       </div>
 
-      <GlassCard className="p-6 sm:p-10 relative overflow-hidden" elevate={false}>
+      <GlassCard className="p-6 sm:p-10 relative overflow-hidden bg-gradient-to-b from-[#0F1713]/90 to-[#0A100E]/95 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.08),0_20px_50px_-10px_rgba(0,0,0,0.7)]" elevate={false}>
+        {/* Specular top highlight */}
+        <div
+          aria-hidden="true"
+          className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"
+        />
+
         <div className="grid grid-cols-1 lg:grid-cols-11 gap-6 lg:gap-3 items-center font-mono relative z-10">
           {/* Layer 1: Next.js Frontend (cols 1-3) */}
           <div className="lg:col-span-3 p-5 rounded-xl border border-white/[0.08] bg-[#0A100E] space-y-4">
@@ -100,8 +112,12 @@ export function ArchitectureDiagram() {
             </div>
           </div>
 
-          {/* Layer 2: AG-UI Adapter Bridge (cols 5-7) */}
-          <div className="lg:col-span-3 p-5 rounded-xl border border-white/[0.12] bg-[#0C1410] space-y-4 relative">
+          {/* Layer 2: AG-UI Adapter Bridge with Selective Specular Gloss (cols 5-7) */}
+          <div className="lg:col-span-3 p-5 rounded-xl border border-white/[0.12] bg-gradient-to-b from-[#111F18]/95 via-[#0D1712]/98 to-[#090F0C] space-y-4 relative overflow-hidden shadow-[inset_0_1px_0_0_rgba(94,234,212,0.18),0_12px_28px_rgba(0,0,0,0.5)]">
+            <div
+              aria-hidden="true"
+              className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-accent/35 to-transparent pointer-events-none"
+            />
             <div className="flex items-center justify-between text-xs text-muted">
               <span className="font-semibold tracking-wider text-[11px]">PROTOCOL BRIDGE</span>
               <span className="text-[10px] text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20 font-bold">
@@ -110,9 +126,9 @@ export function ArchitectureDiagram() {
             </div>
             <h4 className="text-base font-bold text-foreground font-display tracking-tight flex items-center justify-between">
               <span>AG-UI Event Stream</span>
-              <span className="w-2 h-2 rounded-full bg-accent" />
+              <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
             </h4>
-            <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06] text-xs space-y-2">
+            <div className="p-3 rounded-lg bg-black/50 border border-white/[0.06] text-xs space-y-2">
               <div className="text-muted flex items-center justify-between text-[11px]">
                 <span>Standard Event Spec:</span>
                 <span className="text-zinc-300 font-mono">v1.0.0</span>
@@ -124,7 +140,7 @@ export function ArchitectureDiagram() {
                     className={cn(
                       "px-2 py-1 rounded transition-colors duration-200 font-mono text-[10px]",
                       idx === activeEventIndex
-                        ? "bg-accent/15 text-accent font-semibold border border-accent/30"
+                        ? "bg-accent/15 text-accent font-semibold border border-accent/30 shadow-[0_0_8px_-2px_rgba(94,234,212,0.4)]"
                         : "text-zinc-500 bg-white/[0.02]"
                     )}
                   >

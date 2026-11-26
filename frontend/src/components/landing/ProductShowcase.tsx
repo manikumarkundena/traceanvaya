@@ -60,8 +60,9 @@ export function ProductShowcase() {
     target: containerRef,
     offset: ["start end", "center center"],
   });
-  const rotateX = useTransform(scrollYProgress, [0, 1], [4, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [0.98, 1]);
+  const rotateX = useTransform(scrollYProgress, [0, 1], [6, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.96, 1]);
+  const y = useTransform(scrollYProgress, [0, 1], [24, 0]);
 
   // Restrained cycle pausing when off-screen
   useEffect(() => {
@@ -77,13 +78,19 @@ export function ProductShowcase() {
   return (
     <div ref={containerRef} className="w-full mt-14 sm:mt-20 [perspective:1200px]">
       <motion.div
-        style={prefersReducedMotion ? undefined : { rotateX, scale }}
+        style={prefersReducedMotion ? undefined : { rotateX, scale, y }}
         className="relative"
       >
-        {/* Crisp Window Frame with Restrained Neutral Border */}
-        <div className="relative rounded-xl border border-white/[0.1] bg-[#0A100E] shadow-2xl overflow-hidden font-mono text-xs">
+        {/* Crisp Window Frame with Selective Glossy Top Highlight */}
+        <div className="relative rounded-xl border border-white/[0.12] bg-gradient-to-b from-[#111915]/95 to-[#080E0B]/98 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.12),0_24px_64px_-12px_rgba(0,0,0,0.7)] overflow-hidden font-mono text-xs">
+          {/* Fine Specular Top Edge Reflection */}
+          <div
+            aria-hidden="true"
+            className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/25 to-transparent pointer-events-none z-20"
+          />
+
           {/* Window Title Bar */}
-          <div className="flex items-center justify-between px-4 py-3 bg-[#0F1714] border-b border-white/[0.07]">
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#121D18] via-[#0E1713] to-[#121D18] border-b border-white/[0.08] relative">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-critical/80 inline-block" />
               <span className="w-2.5 h-2.5 rounded-full bg-warning/80 inline-block" />
