@@ -1,0 +1,38 @@
+[
+  {
+    "id": "scenario-1",
+    "name": "Database Connection Pool Exhaustion",
+    "category": "Infrastructure & Database",
+    "affectedService": "order-billing-service",
+    "initialSeverity": "CRITICAL",
+    "description": "SYNTHETIC SCENARIO: Under sustained checkout traffic, long-running batch reconciliation queries hold pool connections without returning them to the HikariCP pool, causing HTTP 500s across the checkout pipeline.",
+    "isSynthetic": true,
+    "logFile": "scenario_1_db_pool_exhaustion.log",
+    "totalEvents": 14,
+    "highlightedIds": ["ev-104", "ev-108", "ev-112"]
+  },
+  {
+    "id": "scenario-2",
+    "name": "Payment Gateway Timeout & Cascade Failure",
+    "category": "Microservice Distributed Systems",
+    "affectedService": "checkout-gateway",
+    "initialSeverity": "HIGH",
+    "description": "SYNTHETIC SCENARIO: Upstream payment processor API starts experiencing 15s latency spikes. Without circuit breaker tripping, worker threads in checkout-gateway exhaust thread pools, resulting in 504 Gateway Timeouts.",
+    "isSynthetic": true,
+    "logFile": "scenario_2_dependency_timeout.log",
+    "totalEvents": 14,
+    "highlightedIds": ["ev-203", "ev-207", "ev-211"]
+  },
+  {
+    "id": "scenario-3",
+    "name": "Auth Token Refresh Storm & Rate Limit Rejection",
+    "category": "Security & Identity",
+    "affectedService": "auth-service",
+    "initialSeverity": "HIGH",
+    "description": "SYNTHETIC SCENARIO: A misconfigured mobile app client retries expired JWT token refreshes in a zero-backoff loop, exhausting Redis rate-limit counters and rejecting legitimate logins with HTTP 429 Too Many Requests.",
+    "isSynthetic": true,
+    "logFile": "scenario_3_auth_rate_limit.log",
+    "totalEvents": 14,
+    "highlightedIds": ["ev-304", "ev-307", "ev-312"]
+  }
+]
