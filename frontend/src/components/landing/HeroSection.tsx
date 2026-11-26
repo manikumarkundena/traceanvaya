@@ -23,9 +23,9 @@ export function HeroSection() {
         className="relative z-10 max-w-4xl text-left"
       >
         {/* Category Pill Tag */}
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D1411]/85 backdrop-blur-sm border border-white/[0.09] text-[11px] font-mono text-accent mb-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#0D1411]/85 backdrop-blur-sm border border-white/[0.09] text-xs font-sans font-medium text-accent mb-5 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]">
           <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-          <span>AGENTIC INCIDENT INTELLIGENCE</span>
+          <span>AI-powered incident investigation</span>
         </div>
 
         {/* Confident 3-Line Editorial Headline */}

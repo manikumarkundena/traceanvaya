@@ -43,7 +43,7 @@ export function ArchitectureDiagram() {
           <span>Clean Architecture & Protocol</span>
         </div>
         <h2 className="section-heading font-bold text-foreground">
-          AG-UI Event Protocol & Pydantic AI StateDeps
+          One connected investigation workspace
         </h2>
         <p className="text-muted mt-4 text-sm sm:text-base md:text-lg font-sans leading-relaxed">
           No generic LLM wrapper. TraceAnvaya connects Next.js CopilotKit to a typed Pydantic AI

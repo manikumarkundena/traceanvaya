@@ -55,7 +55,7 @@ export function ScenarioShowcase() {
             <span>Scenario Library</span>
           </div>
           <h2 className="section-heading font-bold text-foreground">
-            Pre-loaded Synthetic Incident Scenarios
+            Explore demo incidents
           </h2>
           <p className="text-muted mt-4 text-sm sm:text-base font-sans leading-relaxed">
             Launch directly into realistic incidents grounded in deterministic application telemetry logs.

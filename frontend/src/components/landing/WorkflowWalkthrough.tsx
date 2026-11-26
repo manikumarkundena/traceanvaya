@@ -61,7 +61,7 @@ export function WorkflowWalkthrough() {
             <span>The Investigation Lifecycle</span>
           </div>
           <h2 className="section-heading font-bold text-foreground">
-            From raw telemetry to verified postmortem.
+            From the first error to the final report.
           </h2>
           <p className="text-muted mt-4 text-sm sm:text-base font-sans leading-relaxed">
             A cohesive forensic investigation journey connecting telemetry ingestion, agent reasoning, and human-in-the-loop resolution.

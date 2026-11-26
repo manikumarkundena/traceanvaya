@@ -42,63 +42,47 @@ export function LandingFooter() {
         </GlassCard>
       </section>
 
-      {/* ELEVATED PROFESSIONAL FOOTER */}
-      <footer className="border-t border-white/[0.08] py-14 px-4 sm:px-6 text-xs text-muted font-mono bg-[#050907]">
+      {/* CLEAN EDITORIAL FOOTER */}
+      <footer className="border-t border-white/[0.08] py-12 px-4 sm:px-6 text-xs text-muted bg-[#050907]">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-10 mb-10 font-sans">
-          <div className="space-y-4 md:col-span-1">
+          <div className="space-y-3 md:col-span-2">
             <Logo size={26} />
-            <p className="text-xs sm:text-sm text-muted leading-relaxed">
-              Agentic incident investigation & replay platform grounded in application telemetry.
+            <p className="text-xs sm:text-sm text-muted leading-relaxed max-w-sm">
+              AI-assisted incident investigation, timeline replay, and postmortem reporting grounded in application telemetry.
             </p>
-            <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent" />
-              <span>Pydantic AI &bull; AG-UI &bull; CopilotKit</span>
-            </div>
           </div>
 
           <div className="space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-foreground font-bold">
+            <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
               Product
             </span>
-            <ul className="space-y-2 text-xs sm:text-sm text-muted font-sans">
-              <li><a href="#features" className="hover:text-foreground transition-colors">Investigation Canvas</a></li>
-              <li><a href="#features" className="hover:text-foreground transition-colors">Evidence Explorer</a></li>
-              <li><a href="#workflow" className="hover:text-foreground transition-colors">Incident Replay</a></li>
-              <li><a href="#scenarios" className="hover:text-foreground transition-colors">Scenario Library</a></li>
+            <ul className="space-y-2 text-xs sm:text-sm text-muted">
+              <li><a href="#features" className="hover:text-foreground transition-colors">Capabilities</a></li>
+              <li><a href="#workflow" className="hover:text-foreground transition-colors">Investigation Lifecycle</a></li>
+              <li><a href="#architecture" className="hover:text-foreground transition-colors">Architecture</a></li>
+              <li><a href="#scenarios" className="hover:text-foreground transition-colors">Demo Scenarios</a></li>
             </ul>
           </div>
 
           <div className="space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-foreground font-bold">
-              Architecture & Docs
+            <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+              Workspace
             </span>
-            <ul className="space-y-2 text-xs sm:text-sm text-muted font-sans">
-              <li><a href="#architecture" className="hover:text-foreground transition-colors">AG-UI Event Protocol</a></li>
-              <li><Link href="/workspace" className="hover:text-foreground transition-colors">Pydantic AI StateDeps</Link></li>
-              <li><Link href="/workspace" className="hover:text-foreground transition-colors">Human Approval Gate</Link></li>
-              <li><Link href="/workspace" className="hover:text-foreground transition-colors">Postmortem Studio</Link></li>
+            <ul className="space-y-2 text-xs sm:text-sm text-muted">
+              <li><Link href="/workspace" className="hover:text-foreground transition-colors">Open Workspace</Link></li>
+              <li><Link href="/workspace?scenario=scenario-1" className="hover:text-foreground transition-colors">DB Pool Exhaustion Demo</Link></li>
+              <li><Link href="/workspace?scenario=scenario-2" className="hover:text-foreground transition-colors">Gateway Timeout Demo</Link></li>
+              <li><Link href="/workspace?scenario=scenario-3" className="hover:text-foreground transition-colors">Auth Rate Storm Demo</Link></li>
             </ul>
-          </div>
-
-          <div className="space-y-3">
-            <span className="text-xs font-mono uppercase tracking-widest text-foreground font-bold">
-              Implementation Details
-            </span>
-            <div className="text-xs text-muted space-y-1.5 font-mono">
-              <div>Version: v1.0.0</div>
-              <div>Stack: Next.js 15 &bull; FastAPI &bull; SQLite/PG</div>
-              <div>License: MIT Open Source</div>
-              <div className="text-zinc-300 font-semibold flex items-center gap-1.5 pt-1">
-                <ShieldCheck className="w-3.5 h-3.5 text-accent" />
-                <span>Zero Unsafe Shell Execution</span>
-              </div>
-            </div>
           </div>
         </div>
 
-        <div className="max-w-7xl mx-auto pt-8 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-xs text-zinc-500">
-          <span>TraceAnvaya &bull; Agentic Incident Intelligence Platform</span>
-          <span>Engineered with Pydantic AI, AG-UI & CopilotKit</span>
+        <div className="max-w-7xl mx-auto pt-6 border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4 font-sans text-xs text-zinc-500">
+          <span>TraceAnvaya &bull; Simulated Incident Investigation Platform</span>
+          <span className="flex items-center gap-1.5 text-zinc-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-accent" />
+            <span>Safe synthetic environment &bull; MIT License</span>
+          </span>
         </div>
       </footer>
     </>

@@ -25,6 +25,46 @@ test.describe("TraceAnvaya Platform Verification", () => {
     expect(htmlClass).toContain("dark");
   });
 
+  test("Interactive hero product showcase switches all 5 tabs without network calls", async ({ page }) => {
+    const apiRequests: string[] = [];
+    page.on("request", (req) => {
+      if (req.url().includes("/api/") || req.url().includes("/agent")) {
+        apiRequests.push(req.url());
+      }
+    });
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/");
+
+    // 1. Investigation tab (default) + clicking [ev-104] switches to Evidence Explorer
+    await expect(page.locator("text=Interactive synthetic demo")).toBeVisible();
+    await page.locator("button:has-text('[ev-104]')").first().click();
+    await expect(page.locator("text=ev-104:")).toBeVisible();
+
+    // 2. Incident Replay tab + Next/Play controls
+    await page.locator("nav[aria-label='Preview workspace sections'] button:has-text('Incident Replay')").click();
+    await expect(page.locator("text=Step 2 of 5")).toBeVisible();
+    await page.locator("button[aria-label='Next event']").click();
+    await expect(page.locator("text=Step 3 of 5")).toBeVisible();
+
+    // 3. Remediation tab + Approve/Reject
+    await page.locator("nav[aria-label='Preview workspace sections'] button:has-text('Remediation')").click();
+    await page.locator("button:has-text('Approve Plan')").first().click();
+    await expect(page.locator("text=Approved (Simulated)").first()).toBeVisible();
+    await expect(page.locator("text=Simulated Mitigation").first()).toBeVisible();
+
+    // 4. Postmortem Studio tab
+    await page.locator("nav[aria-label='Preview workspace sections'] button:has-text('Postmortem Studio')").click();
+    await expect(page.locator("text=Incident Report: Database Connection Pool Exhaustion")).toBeVisible();
+
+    // 5. Reset returns to Investigation & Hypothesis Formed
+    await page.locator("button[title='Reset interactive preview']").click();
+    await expect(page.locator("text=Hypothesis Formed").first()).toBeVisible();
+
+    // Confirm zero backend/CopilotKit/Gemini API calls triggered
+    expect(apiRequests).toHaveLength(0);
+  });
+
   test("CopilotKit runtime endpoint returns 200 with registered incidentAgent", async ({ request }) => {
     const response = await request.post("/api/copilotkit", {
       data: { method: "info" },

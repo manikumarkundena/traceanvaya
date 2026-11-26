@@ -26,7 +26,7 @@ export function FeatureBento() {
           Core Capabilities
         </span>
         <h2 className="section-heading font-bold text-foreground">
-          Built for technical precision, not generic chat.
+          Everything you need to investigate an incident.
         </h2>
         <p className="text-muted mt-3 text-sm sm:text-base font-sans leading-relaxed">
           TraceAnvaya coordinates structured agents, deterministic log parsers, and synchronized
@@ -181,7 +181,7 @@ export function FeatureBento() {
               <ShieldCheck className="w-4 h-4" />
             </div>
             <h4 className="text-lg font-bold text-foreground font-display tracking-tight mb-2">
-              Human Approval Gate
+              Remediation review
             </h4>
             <p className="text-xs text-muted leading-relaxed font-sans">
               Remediations require explicit operator authorization. Propose fixes, review risk
