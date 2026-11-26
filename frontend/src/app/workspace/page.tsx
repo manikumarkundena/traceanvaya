@@ -424,6 +424,24 @@ function WorkspaceContent() {
                   invokedTools.push({ name: evt.toolCallName, result: "executed" });
                 } else if (evt.type === "STATE_SNAPSHOT" && evt.snapshot) {
                   setCanvasState((prev) => ({ ...prev, ...evt.snapshot }));
+                } else if (evt.type === "STATE_DELTA" && Array.isArray(evt.delta)) {
+                  setCanvasState((prev) => {
+                    const next: Record<string, any> = { ...prev };
+                    for (const op of evt.delta) {
+                      const key = typeof op.path === "string" ? op.path.replace(/^\//, "").split("/")[0] : "";
+                      if (!key || !(key in next)) continue;
+                      if (op.op === "replace" || op.op === "add") {
+                        if (Array.isArray(next[key]) && op.path.includes("/-")) {
+                          next[key] = [...next[key], op.value];
+                        } else {
+                          next[key] = op.value;
+                        }
+                      } else if (op.op === "remove" && Array.isArray(next[key])) {
+                        next[key] = [];
+                      }
+                    }
+                    return next as InvestigationState;
+                  });
                 }
               } catch {
                 // Ignore partial SSE JSON

@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.core.config import settings
@@ -33,7 +33,7 @@ app.include_router(router, prefix="/api")
 
 # Also mount root /agent endpoint for direct AG-UI protocol client calls
 @app.post("/agent")
-async def root_agent_endpoint(request):
+async def root_agent_endpoint(request: Request):
     from app.api.routes import run_agent
     return await run_agent(request)
 

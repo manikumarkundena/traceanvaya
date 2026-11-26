@@ -78,3 +78,21 @@ npm run dev
 - **Workspace shows Demo Mode when backend is running**: `GEMINI_API_KEY` is empty in `backend/.env`, or `NEXT_PUBLIC_API_URL` in `frontend/.env.local` doesn't match the backend port.
 - **Port 3000 or 8000 already in use**: Stop the existing Node/Python process before restarting.
 - **Alembic import error**: Run `alembic upgrade head` from inside the `backend/` directory so `app` is on `sys.path`.
+
+---
+
+## 6. Interview Demonstration Script (2–3 Minutes)
+
+1. **Landing Page & Interactive Preview (30s)**:
+   - Open `/` and show the hero headline and interactive 5-tab product showcase (`Investigation`, `Evidence Explorer`, `Incident Replay`, `Remediation`, `Postmortem Studio`).
+   - Click `[ev-104]` in the preview to show evidence navigation, then click **Inspect full workspace** (or **Launch Workspace**).
+2. **Progressive Investigation & Evidence Grounding (45s)**:
+   - In `/workspace`, point out the clean initial Overview panel (empty Findings/Hypotheses/Remediation) and the **Demo Mode / Live AI** status badge.
+   - Click **Analyze the error spike**. Show the tool execution pills (`search_logs`, `update_investigation`), rendered Markdown findings, and clickable `[ev-105]` citation badges that jump directly to the **Evidence** tab.
+3. **Bidirectional Shared State & Timeline Replay (45s)**:
+   - Switch to **Timeline** and step through the chronological events (`ev-101` → `ev-110`).
+   - Switch back to **Overview** and edit **Incident title** or **Severity** — explain how `PUT /api/investigation/state` + AG-UI `StateDeps` keeps user edits synchronized so the next agent turn sees them.
+4. **Human-Gated Remediation & Postmortem Export (30s)**:
+   - Click **Propose a remediation plan**, then **Approve Plan**, noting that approvals are recorded in the simulated audit log without executing real shell commands.
+   - Click **Postmortem Studio** to show the generated Markdown report and **Copy Markdown** export.
+
