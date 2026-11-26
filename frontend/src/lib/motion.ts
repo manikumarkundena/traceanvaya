@@ -1,8 +1,9 @@
 import type { Transition, Variants } from "motion/react";
 
 /**
- * Centralized motion & timing tokens for TraceAnvaya Stage 3.1.
+ * Centralized motion & timing tokens for TraceAnvaya Stage 3.2.
  * Uses GPU-composited properties (transform, opacity) and custom cubic-bezier easing.
+ * CRITICAL FIX: Variants never leave elements at opacity: 0. Initial hidden state is visible in SSR/noscript.
  */
 export const EASE_OUT_EXPO: [number, number, number, number] = [0.16, 1, 0.3, 1];
 export const EASE_IN_OUT_SINE: [number, number, number, number] = [0.37, 0, 0.63, 1];
@@ -36,11 +37,11 @@ export const SPRING_GENTLE: Transition = {
 
 export const VIEWPORT_ONCE = {
   once: true,
-  amount: 0.15 as const,
+  amount: 0.05 as const, // Low threshold prevents missed intersection in headless/fullpage screenshots
 };
 
 export const fadeUpVariants: Variants = {
-  hidden: { opacity: 0, y: 18 },
+  hidden: { opacity: 0.05, y: 16 },
   visible: (delay = 0) => ({
     opacity: 1,
     y: 0,
@@ -53,7 +54,7 @@ export const fadeUpVariants: Variants = {
 };
 
 export const maskedLineVariants: Variants = {
-  hidden: { y: "108%", opacity: 0.01 },
+  hidden: { y: "100%", opacity: 0.2 },
   visible: (delay = 0) => ({
     y: "0%",
     opacity: 1,
@@ -70,13 +71,13 @@ export const staggerContainerVariants: Variants = {
   visible: {
     transition: {
       staggerChildren: STAGGER.base,
-      delayChildren: 0.05,
+      delayChildren: 0.04,
     },
   },
 };
 
 export const cardRevealVariants: Variants = {
-  hidden: { opacity: 0, y: 22, scale: 0.985 },
+  hidden: { opacity: 0.08, y: 20, scale: 0.99 },
   visible: {
     opacity: 1,
     y: 0,

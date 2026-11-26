@@ -3,13 +3,13 @@
 @tailwind utilities;
 
 :root {
-  --background: #050807;
-  --background-secondary: #080D0B;
-  --foreground: #F4F4F5;
-  --surface: #0E1512;
-  --surface-elevated: #141E19;
-  --border: #24362D;
-  --border-glow: rgba(94, 234, 212, 0.28);
+  --background: #040806;
+  --background-secondary: #070D0A;
+  --foreground: #F4F4F6;
+  --surface: #0B1310;
+  --surface-elevated: #111C17;
+  --border: #22352B;
+  --border-glow: rgba(94, 234, 212, 0.35);
   --accent: #5EEAD4;
   --emerald: #10B981;
   --accent-secondary: #D8B978;
@@ -17,14 +17,14 @@
   --success: #34D399;
   --warning: #FBBF24;
   --critical: #F87171;
-  --muted: #A1A1AA;
+  --muted: #A3A3AC;
 
   /* Glossy & Glass Material Tokens */
-  --glass-bg: rgba(14, 21, 18, 0.72);
-  --glass-bg-elevated: rgba(20, 30, 25, 0.82);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-highlight: rgba(255, 255, 255, 0.14);
-  --glass-shadow: 0 20px 50px -12px rgba(0, 0, 0, 0.65), inset 0 1px 0 0 rgba(255, 255, 255, 0.07);
+  --glass-bg: rgba(11, 19, 16, 0.78);
+  --glass-bg-elevated: rgba(17, 28, 23, 0.88);
+  --glass-border: rgba(255, 255, 255, 0.09);
+  --glass-highlight: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 24px 60px -15px rgba(0, 0, 0, 0.75), inset 0 1px 0 0 rgba(255, 255, 255, 0.08);
 }
 
 .light {
@@ -56,111 +56,147 @@ body {
   min-height: 100vh;
 }
 
+/* Fallback visibility guarantee: all text remains visible if animation/observer pauses */
+.motion-safe-reveal {
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
 /* Signature Editorial Typography Utilities */
 .font-editorial {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.035em;
 }
 
 .hero-headline {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-  font-size: clamp(2.75rem, 6.2vw, 5.25rem);
-  line-height: 1.03;
-  letter-spacing: -0.038em;
+  font-size: clamp(3.2rem, 7.2vw, 6.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.042em;
 }
 
 .section-heading {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-  font-size: clamp(1.875rem, 3.6vw, 2.75rem);
-  line-height: 1.12;
-  letter-spacing: -0.028em;
+  font-size: clamp(2.1rem, 4.4vw, 3.2rem);
+  line-height: 1.1;
+  letter-spacing: -0.032em;
 }
 
-/* Technical grid background */
+/* Technical grid background with coordinate lines */
 .tech-grid {
   background-image:
-    linear-gradient(to right, rgba(38, 56, 47, 0.36) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(38, 56, 47, 0.36) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(to right, rgba(38, 56, 47, 0.42) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(38, 56, 47, 0.42) 1px, transparent 1px);
+  background-size: 38px 38px;
 }
 
-/* Subtle edge vignette */
+/* Diagonal Emerald Shafts Background Texture */
+.shafts-layer {
+  background:
+    repeating-linear-gradient(
+      -68deg,
+      transparent,
+      transparent 90px,
+      rgba(16, 185, 129, 0.05) 91px,
+      rgba(94, 234, 212, 0.12) 125px,
+      rgba(16, 185, 129, 0.04) 145px,
+      transparent 146px,
+      transparent 260px
+    );
+}
+
+/* Edge vignette preserving headline contrast while letting shafts emanate */
 .vignette-overlay {
-  background: radial-gradient(circle at 50% 42%, transparent 48%, rgba(5, 8, 7, 0.88) 100%);
+  background: radial-gradient(ellipse 95% 85% at 50% 40%, transparent 42%, rgba(4, 8, 6, 0.82) 85%, rgba(4, 8, 6, 0.98) 100%);
 }
 
 /* Ambient glow */
 .ambient-glow {
-  background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.14) 0%, rgba(5, 8, 7, 0) 70%);
+  background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.18) 0%, rgba(5, 8, 7, 0) 70%);
 }
 
 /* Precision Glass Surface */
 .glass-surface {
   background: linear-gradient(
     180deg,
-    rgba(22, 33, 28, 0.78) 0%,
-    rgba(12, 19, 16, 0.86) 100%
+    rgba(22, 36, 29, 0.82) 0%,
+    rgba(11, 18, 15, 0.92) 100%
   );
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--glass-shadow);
 }
 
-/* Cinematic Background Animations (14s - 28s seamless cycles) */
-@keyframes ribbonDriftA {
+/* Cinematic Diagonal Emerald Shaft Animations */
+@keyframes shaftDriftA {
   0% {
-    transform: translate3d(-4%, -3%, 0) rotate(-66deg) scaleY(1);
-    opacity: 0.11;
+    transform: translate3d(-3%, -2%, 0) rotate(-65deg) scaleY(1);
+    opacity: 0.32;
   }
   50% {
-    transform: translate3d(3%, 2%, 0) rotate(-64deg) scaleY(1.06);
-    opacity: 0.2;
+    transform: translate3d(2%, 2%, 0) rotate(-63deg) scaleY(1.08);
+    opacity: 0.52;
   }
   100% {
-    transform: translate3d(-4%, -3%, 0) rotate(-66deg) scaleY(1);
-    opacity: 0.11;
+    transform: translate3d(-3%, -2%, 0) rotate(-65deg) scaleY(1);
+    opacity: 0.32;
   }
 }
 
-@keyframes ribbonDriftB {
+@keyframes shaftDriftB {
   0% {
-    transform: translate3d(3%, 2%, 0) rotate(-71deg) scaleY(1.04);
-    opacity: 0.08;
+    transform: translate3d(2%, 2%, 0) rotate(-70deg) scaleY(1.06);
+    opacity: 0.28;
   }
   50% {
-    transform: translate3d(-3%, -2%, 0) rotate(-68deg) scaleY(0.96);
-    opacity: 0.16;
+    transform: translate3d(-3%, -2%, 0) rotate(-67deg) scaleY(0.96);
+    opacity: 0.48;
   }
   100% {
-    transform: translate3d(3%, 2%, 0) rotate(-71deg) scaleY(1.04);
-    opacity: 0.08;
+    transform: translate3d(2%, 2%, 0) rotate(-70deg) scaleY(1.06);
+    opacity: 0.28;
+  }
+}
+
+@keyframes shaftDriftC {
+  0% {
+    transform: translate3d(-2%, 2%, 0) rotate(-64deg) scaleY(0.98);
+    opacity: 0.24;
+  }
+  50% {
+    transform: translate3d(3%, -2%, 0) rotate(-62deg) scaleY(1.04);
+    opacity: 0.44;
+  }
+  100% {
+    transform: translate3d(-2%, 2%, 0) rotate(-64deg) scaleY(0.98);
+    opacity: 0.24;
   }
 }
 
 @keyframes glowBreathe {
   0%, 100% {
     transform: scale(1) translate3d(0, 0, 0);
-    opacity: 0.55;
+    opacity: 0.65;
   }
   50% {
-    transform: scale(1.08) translate3d(-1.5%, 1.5%, 0);
-    opacity: 0.85;
+    transform: scale(1.1) translate3d(-2%, 2%, 0);
+    opacity: 0.92;
   }
 }
 
 @keyframes lightSweep {
   0% {
-    transform: translate3d(-120%, -20%, 0) rotate(-65deg);
+    transform: translate3d(-100%, -20%, 0) rotate(-66deg);
     opacity: 0;
   }
   20% {
-    opacity: 0.14;
+    opacity: 0.25;
   }
   80% {
-    opacity: 0.12;
+    opacity: 0.2;
   }
   100% {
-    transform: translate3d(140%, 30%, 0) rotate(-65deg);
+    transform: translate3d(150%, 30%, 0) rotate(-66deg);
     opacity: 0;
   }
 }
@@ -183,33 +219,38 @@ body {
   }
 }
 
-.animate-ribbon-a {
-  animation: ribbonDriftA 18s ease-in-out infinite;
+.animate-shaft-a {
+  animation: shaftDriftA 16s ease-in-out infinite;
   will-change: transform, opacity;
 }
 
-.animate-ribbon-b {
-  animation: ribbonDriftB 24s ease-in-out infinite;
+.animate-shaft-b {
+  animation: shaftDriftB 22s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+
+.animate-shaft-c {
+  animation: shaftDriftC 20s ease-in-out infinite;
   will-change: transform, opacity;
 }
 
 .animate-glow-breathe {
-  animation: glowBreathe 14s ease-in-out infinite;
+  animation: glowBreathe 12s ease-in-out infinite;
   will-change: transform, opacity;
 }
 
 .animate-light-sweep {
-  animation: lightSweep 22s ease-in-out infinite;
+  animation: lightSweep 18s ease-in-out infinite;
   will-change: transform, opacity;
 }
 
 .animate-gradient-shift {
   background-size: 200% 200%;
-  animation: gradientShift 8s ease-in-out infinite;
+  animation: gradientShift 6s ease-in-out infinite;
 }
 
 .animate-marquee {
-  animation: marqueeScroll 32s linear infinite;
+  animation: marqueeScroll 28s linear infinite;
   will-change: transform;
 }
 
@@ -223,8 +264,9 @@ body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .animate-ribbon-a,
-  .animate-ribbon-b,
+  .animate-shaft-a,
+  .animate-shaft-b,
+  .animate-shaft-c,
   .animate-glow-breathe,
   .animate-light-sweep,
   .animate-gradient-shift,
@@ -233,7 +275,7 @@ body {
   }
 }
 
-/* Custom scrollbar for log terminals */
+/* Custom scrollbar for terminals */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

@@ -1,9 +1,10 @@
 import React from "react";
 
 /**
- * Atmospheric animated background system for the landing page.
- * Uses GPU-composited CSS transforms, radial gradients, fine technical grid,
- * subtle SVG fractal noise, and an edge vignette. Zero WebGL/Three.js.
+ * Stage 3.2 Cinematic Lighting Composition:
+ * Restores large, expressive, volumetric diagonal emerald light shafts flowing from the upper-right.
+ * Features bright luminous cores, wide translucent outer glows, technical coordinate grid,
+ * and seamless continuous directional animation without overpowering headline contrast.
  */
 export function CinematicBackground() {
   return (
@@ -11,85 +12,96 @@ export function CinematicBackground() {
       aria-hidden="true"
       className="fixed inset-0 pointer-events-none overflow-hidden z-0 select-none"
     >
-      {/* 1. Fine technical grid with radial fade mask */}
+      {/* 1. Fine technical coordinate grid */}
       <div
-        className="absolute inset-0 tech-grid opacity-40"
+        className="absolute inset-0 tech-grid opacity-35"
         style={{
           maskImage:
-            "radial-gradient(ellipse 85% 75% at 50% 25%, black 25%, transparent 90%)",
+            "radial-gradient(ellipse 90% 80% at 50% 30%, black 30%, transparent 92%)",
           WebkitMaskImage:
-            "radial-gradient(ellipse 85% 75% at 50% 25%, black 25%, transparent 90%)",
+            "radial-gradient(ellipse 90% 80% at 50% 30%, black 30%, transparent 92%)",
         }}
       />
 
-      {/* 2. Primary radial atmospheric emerald glow (top-right / hero focal) */}
+      {/* 2. Primary Atmospheric Luminous Source (Upper-right focal origin) */}
       <div
-        className="absolute -top-40 right-[-10%] w-[780px] h-[680px] rounded-full animate-glow-breathe"
+        className="absolute -top-36 right-[-5%] w-[900px] h-[800px] rounded-full animate-glow-breathe"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, rgba(16, 185, 129, 0.20) 0%, rgba(94, 234, 212, 0.08) 38%, rgba(5, 8, 7, 0) 72%)",
+            "radial-gradient(circle at 55% 45%, rgba(16, 185, 129, 0.32) 0%, rgba(94, 234, 212, 0.16) 30%, rgba(5, 8, 7, 0) 74%)",
         }}
       />
 
-      {/* 3. Secondary soft mint volumetric pool (top-left balance) */}
+      {/* 3. Deep Volumetric Ambient Glow behind Hero copy */}
       <div
-        className="hidden md:block absolute -top-24 -left-32 w-[560px] h-[520px] rounded-full opacity-50"
+        className="absolute top-10 left-[15%] w-[700px] h-[550px] rounded-full opacity-40 blur-3xl pointer-events-none"
         style={{
           background:
-            "radial-gradient(circle at 50% 50%, rgba(94, 234, 212, 0.09) 0%, rgba(16, 185, 129, 0.03) 45%, transparent 72%)",
+            "radial-gradient(ellipse at 50% 50%, rgba(94, 234, 212, 0.14) 0%, rgba(16, 185, 129, 0.05) 50%, transparent 80%)",
         }}
       />
 
-      {/* 4. Flowing diagonal emerald light ribbons (distinct widths, blurs & phases) */}
+      {/* 4. Layer of Fine Diagonal Texture Ribbons */}
+      <div className="absolute inset-0 shafts-layer opacity-45" />
+
+      {/* 5. Expressive Volumetric Diagonal Emerald Light Shafts (flowing from upper-right) */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* Ribbon A: Wide soft volumetric shaft */}
+        {/* Shaft A: Massive soft volumetric emerald beam */}
         <div
-          className="absolute -top-1/3 left-[18%] w-[360px] h-[150vh] blur-3xl animate-ribbon-a"
+          className="absolute -top-[30%] right-[10%] w-[420px] h-[175vh] blur-3xl animate-shaft-a"
           style={{
             background:
-              "linear-gradient(180deg, transparent 0%, rgba(16, 185, 129, 0.22) 35%, rgba(94, 234, 212, 0.14) 60%, transparent 100%)",
+              "linear-gradient(180deg, transparent 0%, rgba(16, 185, 129, 0.35) 30%, rgba(94, 234, 212, 0.22) 55%, transparent 100%)",
           }}
         />
 
-        {/* Ribbon B: Medium crisp mint beam (desktop/tablet) */}
+        {/* Shaft B: Crisp luminous mint core beam */}
         <div
-          className="hidden sm:block absolute -top-1/4 left-[52%] w-[200px] h-[145vh] blur-2xl animate-ribbon-b"
+          className="absolute -top-[25%] right-[28%] w-[240px] h-[165vh] blur-2xl animate-shaft-b"
           style={{
             background:
-              "linear-gradient(180deg, transparent 0%, rgba(94, 234, 212, 0.18) 40%, rgba(16, 185, 129, 0.10) 70%, transparent 100%)",
+              "linear-gradient(180deg, transparent 0%, rgba(94, 234, 212, 0.32) 35%, rgba(52, 211, 153, 0.20) 65%, transparent 100%)",
           }}
         />
 
-        {/* Ribbon C: Fine high-clarity specular shaft (desktop only) */}
+        {/* Shaft C: High-clarity specular shaft with bright core */}
         <div
-          className="hidden lg:block absolute -top-1/3 right-[16%] w-[110px] h-[140vh] blur-xl animate-ribbon-a"
+          className="hidden sm:block absolute -top-[35%] right-[42%] w-[150px] h-[170vh] blur-xl animate-shaft-c"
           style={{
-            animationDelay: "-7s",
-            animationDuration: "21s",
             background:
-              "linear-gradient(180deg, transparent 0%, rgba(94, 234, 212, 0.24) 45%, rgba(52, 211, 153, 0.08) 75%, transparent 100%)",
+              "linear-gradient(180deg, transparent 0%, rgba(255, 255, 255, 0.18) 25%, rgba(94, 234, 212, 0.38) 45%, rgba(16, 185, 129, 0.12) 75%, transparent 100%)",
           }}
         />
 
-        {/* Subtle directional light sweep */}
+        {/* Shaft D: Broad background shaft providing ambient contrast depth */}
         <div
-          className="hidden md:block absolute top-0 left-0 w-[260px] h-[160vh] blur-3xl animate-light-sweep"
+          className="hidden lg:block absolute -top-[20%] left-[8%] w-[380px] h-[160vh] blur-3xl animate-shaft-a"
+          style={{
+            animationDelay: "-8s",
+            background:
+              "linear-gradient(180deg, transparent 0%, rgba(16, 185, 129, 0.18) 40%, rgba(94, 234, 212, 0.10) 65%, transparent 100%)",
+          }}
+        />
+
+        {/* Dynamic Light Sweep along the angle of the ribbons */}
+        <div
+          className="absolute top-0 left-[-20%] w-[300px] h-[180vh] blur-3xl animate-light-sweep"
           style={{
             background:
-              "linear-gradient(90deg, transparent 0%, rgba(94, 234, 212, 0.14) 50%, transparent 100%)",
+              "linear-gradient(90deg, transparent 0%, rgba(94, 234, 212, 0.24) 50%, transparent 100%)",
           }}
         />
       </div>
 
-      {/* 5. Very subtle SVG noise texture for tactile dark-glass depth */}
+      {/* 6. Subtle SVG Noise Overlay */}
       <svg
-        className="absolute inset-0 w-full h-full opacity-[0.028] mix-blend-overlay"
+        className="absolute inset-0 w-full h-full opacity-[0.032] mix-blend-overlay"
         xmlns="http://www.w3.org/2000/svg"
       >
         <filter id="traceanvaya-noise">
           <feTurbulence
             type="fractalNoise"
-            baseFrequency="0.8"
+            baseFrequency="0.75"
             numOctaves="3"
             stitchTiles="stitch"
           />
@@ -97,8 +109,8 @@ export function CinematicBackground() {
         <rect width="100%" height="100%" filter="url(#traceanvaya-noise)" />
       </svg>
 
-      {/* 6. Edge vignette preserving crisp headline contrast */}
-      <div className="absolute inset-0 vignette-overlay opacity-80" />
+      {/* 7. Edge Vignette preserving readable content contrast */}
+      <div className="absolute inset-0 vignette-overlay opacity-85" />
     </div>
   );
 }

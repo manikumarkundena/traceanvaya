@@ -12,8 +12,8 @@ const VIEWPORTS = [
   { name: "360x800", width: 360, height: 800 },
 ];
 
-test.describe("Stage 3.1 Visual & Responsive Artifact Capture", () => {
-  const outputDir = path.resolve(__dirname, "../../screenshots/stage-3.1");
+test.describe("Stage 3.2 Flagship Visual & Responsive Artifact Capture", () => {
+  const outputDir = path.resolve(__dirname, "../../screenshots/stage-3.2");
 
   test.beforeAll(async () => {
     if (!fs.existsSync(outputDir)) {
@@ -22,13 +22,23 @@ test.describe("Stage 3.1 Visual & Responsive Artifact Capture", () => {
   });
 
   for (const vp of VIEWPORTS) {
-    test(`Capture landing page at ${vp.name}`, async ({ page }) => {
+    test(`Capture landing full-page at ${vp.name}`, async ({ page }) => {
       await page.setViewportSize({ width: vp.width, height: vp.height });
       await page.goto("/");
-      await page.waitForTimeout(1400); // Allow hero reveals & living constellation to settle
+      await page.waitForTimeout(1500); // Allow emerald shafts and constellation to initialize
       await page.screenshot({
-        path: path.join(outputDir, `landing-${vp.name}.png`),
+        path: path.join(outputDir, `landing-${vp.name}-fullpage.png`),
         fullPage: true,
+      });
+    });
+
+    test(`Capture landing first-viewport at ${vp.name}`, async ({ page }) => {
+      await page.setViewportSize({ width: vp.width, height: vp.height });
+      await page.goto("/");
+      await page.waitForTimeout(1000);
+      await page.screenshot({
+        path: path.join(outputDir, `landing-${vp.name}-viewport.png`),
+        fullPage: false,
       });
     });
 
@@ -43,7 +53,7 @@ test.describe("Stage 3.1 Visual & Responsive Artifact Capture", () => {
     });
   }
 
-  test("Capture video clip demonstrating hero motion, living constellation, and hover effects", async ({ page }) => {
+  test("Capture flagship motion showcase video clip", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
     await page.waitForTimeout(2000);
@@ -53,27 +63,31 @@ test.describe("Stage 3.1 Visual & Responsive Artifact Capture", () => {
     await cta.hover();
     await page.waitForTimeout(800);
 
-    // Scroll to Tech Strip and Feature Bento
+    // Scroll smoothly to Feature Bento
     await page.locator("#features").scrollIntoViewIfNeeded();
     await page.waitForTimeout(1200);
 
-    // Hover over AI Investigator card
+    // Hover over AI Investigator dominant card
     const card = page.locator("text=AI Investigator").first();
     await card.hover();
     await page.waitForTimeout(1000);
 
-    // Scroll to Protocol & Architecture
+    // Scroll to Protocol & Architecture Diagram
     await page.locator("#architecture").scrollIntoViewIfNeeded();
     await page.waitForTimeout(1500);
 
-    // Navigate to Workspace
+    // Scroll to Scenario Library
+    await page.locator("#scenarios").scrollIntoViewIfNeeded();
+    await page.waitForTimeout(1000);
+
+    // Navigate to Investigation Workspace
     await page.goto("/workspace");
     await page.waitForTimeout(1500);
 
     // Trigger state edit
     const input = page.locator("input[value='Database Connection Pool Exhaustion']");
     if (await input.isVisible()) {
-      await input.fill("Database Pool Exhaustion - Live Motion Test");
+      await input.fill("Database Pool Exhaustion — Stage 3.2 Flagship");
       await page.waitForTimeout(800);
     }
   });

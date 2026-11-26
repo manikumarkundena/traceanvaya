@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { motion, useInView, useReducedMotion } from "motion/react";
+import { useInView, useReducedMotion } from "motion/react";
 import {
   Cpu,
   Layers,
@@ -10,194 +10,170 @@ import {
   ShieldCheck,
   CheckCircle2,
   Terminal,
+  Activity,
+  Zap,
 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
-import {
-  cardRevealVariants,
-  EASE_OUT_EXPO,
-  maskedLineVariants,
-  staggerContainerVariants,
-  VIEWPORT_ONCE,
-} from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 const CANVAS_STATES = [
-  { status: "INVESTIGATING", color: "text-info", dot: "bg-info" },
-  { status: "HYPOTHESIS_FORMED", color: "text-accent", dot: "bg-accent" },
-  { status: "MITIGATED", color: "text-success", dot: "bg-success" },
+  { status: "INVESTIGATING", color: "text-info", sync: "SYNCING", dot: "bg-info" },
+  { status: "HYPOTHESIS_FORMED", color: "text-accent", sync: "SYNCHRONIZED", dot: "bg-accent" },
+  { status: "MITIGATION_READY", color: "text-success", sync: "SYNCHRONIZED", dot: "bg-success" },
 ] as const;
 
 const REPLAY_STEPS = [
-  { step: 3, pct: "22%" },
-  { step: 7, pct: "52%" },
-  { step: 11, pct: "79%" },
+  { step: 3, pct: "22%", label: "ev-104 WARN", time: "14:15:32" },
+  { step: 7, pct: "52%", label: "ev-105 ERROR", time: "14:15:45" },
+  { step: 11, pct: "79%", label: "ev-110 CRIT", time: "14:16:15" },
 ] as const;
 
 export function FeatureBento() {
   const sectionRef = useRef<HTMLElement>(null);
-  const isInView = useInView(sectionRef, { amount: 0.2 });
+  const isInView = useInView(sectionRef, { amount: 0.1 });
   const prefersReducedMotion = useReducedMotion();
 
   const [tick, setTick] = useState(0);
 
-  // Subtle coordinated cycle only when section is visible and motion is enabled
   useEffect(() => {
     if (!isInView || prefersReducedMotion) return;
     const interval = setInterval(() => {
-      setTick((prev) => (prev + 1) % 3);
+      setTick((prev) => prev + 1);
     }, 2800);
     return () => clearInterval(interval);
   }, [isInView, prefersReducedMotion]);
 
-  const activeCanvas = CANVAS_STATES[tick];
-  const activeReplay = REPLAY_STEPS[tick];
+  const canvasCycle = CANVAS_STATES[tick % CANVAS_STATES.length];
+  const replayCycle = REPLAY_STEPS[tick % REPLAY_STEPS.length];
+  const activeEvidenceRow = tick % 2;
+  const activeApprovalPulse = tick % 2 === 1;
 
   return (
     <section
       ref={sectionRef}
       id="features"
-      className="py-24 px-4 sm:px-6 max-w-7xl mx-auto w-full"
+      className="py-24 sm:py-32 px-4 sm:px-6 max-w-7xl mx-auto w-full relative"
     >
-      <div className="text-center max-w-3xl mx-auto mb-16">
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT_ONCE}
-          transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
-          className="motion-safe-reveal text-xs font-mono text-accent uppercase tracking-widest mb-3"
-        >
-          System Capabilities
-        </motion.div>
-        <h2 className="section-heading font-bold text-foreground overflow-hidden">
-          <motion.span
-            variants={maskedLineVariants}
-            initial="hidden"
-            whileInView="visible"
-            viewport={VIEWPORT_ONCE}
-            className="motion-safe-reveal block"
-          >
-            Built for technical precision, not generic chat.
-          </motion.span>
+      {/* Editorial Section Heading - Guaranteed 100% visible across SSR, full-page capture & reduced motion */}
+      <div className="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-elevated border border-white/[0.08] text-xs font-mono text-accent uppercase tracking-widest mb-4 shadow-sm">
+          <Zap className="w-3.5 h-3.5 text-accent" />
+          <span>System Capabilities</span>
+        </div>
+        <h2 className="section-heading font-bold text-foreground">
+          Built for technical precision, not generic chat.
         </h2>
-        <motion.p
-          initial={{ opacity: 0, y: 14 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={VIEWPORT_ONCE}
-          transition={{ duration: 0.45, delay: 0.1, ease: EASE_OUT_EXPO }}
-          className="motion-safe-reveal text-muted mt-4 text-sm sm:text-base font-sans leading-relaxed"
-        >
+        <p className="text-muted mt-4 text-sm sm:text-base md:text-lg font-sans leading-relaxed">
           TraceAnvaya coordinates structured agents, deterministic log parsers, and synchronized
           state canvases so engineering teams can diagnose production outages with evidence grounding.
-        </motion.p>
+        </p>
       </div>
 
-      <motion.div
-        variants={staggerContainerVariants}
-        initial="hidden"
-        whileInView="visible"
-        viewport={VIEWPORT_ONCE}
-        className="grid grid-cols-1 md:grid-cols-3 gap-6"
-      >
-        {/* Card 1: AI Investigator */}
-        <motion.div variants={cardRevealVariants} className="motion-safe-reveal md:col-span-2">
-          <GlassCard spotlight sweep className="p-6 sm:p-8 h-full">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-7">
+        {/* Card 1: Dominant AI Investigator (Col span 2) */}
+        <div className="md:col-span-2">
+          <GlassCard spotlight sweep className="p-7 sm:p-9 h-full">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/25 flex items-center justify-center text-accent mb-4 shadow-[inset_0_1px_0_0_rgba(94,234,212,0.2)]">
-                  <Cpu className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent mb-5 shadow-[inset_0_1px_0_0_rgba(94,234,212,0.3)]">
+                  <Cpu className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2 font-display tracking-tight">
+                <h3 className="text-2xl font-bold text-foreground mb-3 font-display tracking-tight">
                   AI Investigator
                 </h3>
-                <p className="text-sm text-muted leading-relaxed mb-6 font-sans">
-                  Pydantic AI agent equipped with structured tools to query logs, isolate anomalies,
+                <p className="text-sm sm:text-base text-muted leading-relaxed mb-6 font-sans">
+                  Autonomous Pydantic AI agent equipped with structured tools to query logs, isolate anomalies,
                   and update shared investigation state in real-time. Every diagnostic finding references
-                  concrete evidence identifiers.
+                  concrete evidence identifiers grounded in application telemetry.
                 </p>
               </div>
 
-              <div className="p-4 rounded-lg bg-background/90 border border-white/[0.07] font-mono text-xs space-y-2.5">
-                <div className="flex items-center justify-between text-muted text-[11px]">
-                  <span className="text-accent flex items-center gap-1.5">
-                    <Terminal className="w-3.5 h-3.5" />
-                    tool: search_logs(query=&quot;lease timeout&quot;)
+              {/* Rich Technical Visualization */}
+              <div className="p-4 sm:p-5 rounded-xl bg-background/90 border border-white/[0.09] font-mono text-xs space-y-3 shadow-inner">
+                <div className="flex items-center justify-between text-muted text-xs pb-2 border-b border-white/[0.07]">
+                  <span className="text-accent flex items-center gap-2 font-semibold">
+                    <Terminal className="w-4 h-4" />
+                    <span>tool: search_logs(query=&quot;connection timeout&quot;)</span>
                   </span>
-                  <span className="text-success flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                    2 matches
+                  <span className="text-success flex items-center gap-1.5 font-bold">
+                    <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                    2 matches isolated
                   </span>
                 </div>
-                <div className="space-y-1.5 text-[11px] bg-surface/80 p-2.5 rounded border border-white/[0.06]">
+                <div className="space-y-2 text-xs">
                   <div
                     className={cn(
-                      "px-1.5 py-0.5 rounded transition-colors duration-300",
-                      tick === 0 ? "bg-accent/10 text-foreground" : "text-foreground/85"
+                      "px-3 py-2.5 rounded-lg border transition-all duration-300",
+                      activeEvidenceRow === 0
+                        ? "bg-accent/15 border-accent/40 text-foreground shadow-sm"
+                        : "bg-surface/85 border-white/[0.06] text-muted"
                     )}
                   >
-                    <span className="text-accent font-semibold">[ev-105]</span> HikariPool-1: Connection lease timeout after 30000ms
+                    <span className="text-accent font-bold">[ev-105]</span> HikariPool-1: Connection lease timeout after 30000ms &bull; <span className="text-warning">WARN</span>
                   </div>
                   <div
                     className={cn(
-                      "px-1.5 py-0.5 rounded transition-colors duration-300",
-                      tick >= 1 ? "bg-accent/10 text-foreground" : "text-foreground/85"
+                      "px-3 py-2.5 rounded-lg border transition-all duration-300",
+                      activeEvidenceRow === 1
+                        ? "bg-accent/15 border-accent/40 text-foreground shadow-sm"
+                        : "bg-surface/85 border-white/[0.06] text-muted"
                     )}
                   >
-                    <span className="text-accent font-semibold">[ev-106]</span> SQLTransientConnectionException: HikariPool-1 unavailable
+                    <span className="text-accent font-bold">[ev-106]</span> SQLTransientConnectionException: HikariPool-1 unavailable &bull; <span className="text-critical">CRITICAL</span>
                   </div>
                 </div>
               </div>
             </div>
           </GlassCard>
-        </motion.div>
+        </div>
 
         {/* Card 2: Investigation Canvas */}
-        <motion.div variants={cardRevealVariants} className="motion-safe-reveal">
-          <GlassCard spotlight className="p-6 sm:p-8 h-full">
+        <div>
+          <GlassCard spotlight className="p-7 sm:p-8 h-full">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <div className="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 mb-4">
-                  <Layers className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mb-5">
+                  <Layers className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2 font-display tracking-tight">
+                <h3 className="text-xl font-bold text-foreground mb-3 font-display tracking-tight">
                   Investigation Canvas
                 </h3>
                 <p className="text-sm text-muted leading-relaxed mb-6 font-sans">
-                  Bidirectional state between UI and AI. Manual edits in the browser are recognized
+                  Bidirectional state synchronization between UI and AI. Manual edits in the browser are recognized
                   by the agent on subsequent turns via typed <code>StateDeps</code>.
                 </p>
               </div>
-
-              <div className="p-3.5 rounded-lg bg-background/90 border border-white/[0.07] text-xs font-mono space-y-2">
-                <div className="flex items-center justify-between text-[10px] text-muted">
-                  <span>STATE CONTRACT</span>
-                  <span className="text-success flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-success" />
-                    SYNCHRONIZED
+              <div className="p-4 rounded-xl bg-background/90 border border-white/[0.09] text-xs font-mono space-y-2.5">
+                <div className="flex items-center justify-between text-[11px] text-muted">
+                  <span className="flex items-center gap-1.5">
+                    <Activity className="w-3.5 h-3.5 text-accent" />
+                    STATE CONTRACT
                   </span>
+                  <span className="text-success font-bold">{canvasCycle.sync}</span>
                 </div>
-                <div className="text-foreground text-[11px] flex flex-wrap items-center gap-1.5">
+                <div className="text-foreground text-xs flex flex-wrap items-center gap-2 pt-1 border-t border-white/[0.07]">
                   <span>Severity:</span>
                   <span className="text-critical font-bold">CRITICAL</span>
-                  <span className="text-muted">&bull;</span>
-                  <span className={cn("inline-flex items-center gap-1 font-semibold transition-colors duration-300", activeCanvas.color)}>
-                    <span className={cn("w-1.5 h-1.5 rounded-full", activeCanvas.dot)} />
-                    {activeCanvas.status}
+                  <span>&bull;</span>
+                  <span className={cn("font-semibold transition-colors duration-300 flex items-center gap-1.5", canvasCycle.color)}>
+                    <span className={cn("w-2 h-2 rounded-full", canvasCycle.dot)} />
+                    {canvasCycle.status}
                   </span>
                 </div>
               </div>
             </div>
           </GlassCard>
-        </motion.div>
+        </div>
 
         {/* Card 3: Evidence Explorer */}
-        <motion.div variants={cardRevealVariants} className="motion-safe-reveal">
-          <GlassCard spotlight className="p-6 sm:p-8 h-full">
+        <div>
+          <GlassCard spotlight className="p-7 sm:p-8 h-full">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <div className="w-10 h-10 rounded-lg bg-info/10 border border-info/25 flex items-center justify-center text-info mb-4">
-                  <Search className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-xl bg-info/15 border border-info/30 flex items-center justify-center text-info mb-5">
+                  <Search className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2 font-display tracking-tight">
+                <h3 className="text-xl font-bold text-foreground mb-3 font-display tracking-tight">
                   Evidence Explorer
                 </h3>
                 <p className="text-sm text-muted leading-relaxed mb-6 font-sans">
@@ -205,40 +181,49 @@ export function FeatureBento() {
                   redaction and anomaly isolation.
                 </p>
               </div>
-
-              <div className="space-y-1.5 font-mono text-[11px] bg-background/90 p-3 rounded-lg border border-white/[0.07]">
+              <div className="space-y-2 font-mono text-xs bg-background/90 p-3.5 rounded-xl border border-white/[0.09]">
                 <div
                   className={cn(
-                    "p-1.5 rounded transition-colors duration-300 border",
-                    tick % 2 === 0
-                      ? "bg-accent/10 border-accent/25"
-                      : "bg-transparent border-transparent"
+                    "p-2 rounded-lg transition-colors duration-300",
+                    activeEvidenceRow === 0 ? "bg-accent/15" : "bg-transparent"
                   )}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-1">
                     <span className="text-accent font-bold">ev-104</span>
-                    <span className="text-warning text-[9px] px-1.5 py-0.5 rounded bg-warning/10 border border-warning/20">
+                    <span className="text-warning text-[10px] px-2 py-0.2 rounded bg-warning/15 border border-warning/30 font-bold">
                       WARN
                     </span>
                   </div>
-                  <p className="text-muted truncate mt-0.5">
-                    Slow query: SELECT * FROM ledger_entries...
-                  </p>
+                  <p className="text-muted truncate text-[11px]">Slow query detected: SELECT * FROM ledger_entries...</p>
+                </div>
+                <div
+                  className={cn(
+                    "p-2 rounded-lg transition-colors duration-300",
+                    activeEvidenceRow === 1 ? "bg-accent/15" : "bg-transparent"
+                  )}
+                >
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-accent font-bold">ev-105</span>
+                    <span className="text-critical text-[10px] px-2 py-0.2 rounded bg-critical/15 border border-critical/30 font-bold">
+                      ERROR
+                    </span>
+                  </div>
+                  <p className="text-muted truncate text-[11px]">HikariPool-1: Connection lease timeout...</p>
                 </div>
               </div>
             </div>
           </GlassCard>
-        </motion.div>
+        </div>
 
         {/* Card 4: Incident Replay */}
-        <motion.div variants={cardRevealVariants} className="motion-safe-reveal">
-          <GlassCard spotlight className="p-6 sm:p-8 h-full">
+        <div>
+          <GlassCard spotlight className="p-7 sm:p-8 h-full">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <div className="w-10 h-10 rounded-lg bg-accent/10 border border-accent/25 flex items-center justify-center text-accent mb-4">
-                  <RotateCcw className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-xl bg-accent/15 border border-accent/30 flex items-center justify-center text-accent mb-5">
+                  <RotateCcw className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2 font-display tracking-tight">
+                <h3 className="text-xl font-bold text-foreground mb-3 font-display tracking-tight">
                   Incident Replay
                 </h3>
                 <p className="text-sm text-muted leading-relaxed mb-6 font-sans">
@@ -246,32 +231,32 @@ export function FeatureBento() {
                   cascading failures to observe how anomalies propagated.
                 </p>
               </div>
-
-              <div className="p-3.5 rounded-lg bg-background/90 border border-white/[0.07] font-mono text-xs space-y-2">
-                <div className="flex justify-between text-[10px] text-muted">
-                  <span>TIMELINE SCRUBBER</span>
-                  <span className="text-accent">STEP {activeReplay.step} OF 14</span>
+              <div className="p-4 rounded-xl bg-background/90 border border-white/[0.09] font-mono text-xs space-y-2.5">
+                <div className="flex justify-between text-xs text-muted">
+                  <span className="text-foreground font-semibold">{replayCycle.label}</span>
+                  <span className="text-accent font-bold">STEP {replayCycle.step} OF 14</span>
                 </div>
-                <div className="w-full bg-surface h-1.5 rounded-full overflow-hidden">
+                <div className="w-full bg-surface-elevated h-2 rounded-full overflow-hidden border border-white/[0.06]">
                   <div
-                    className="bg-gradient-to-r from-emerald-500 to-accent h-full rounded-full transition-all duration-700 ease-out"
-                    style={{ width: activeReplay.pct }}
+                    className="bg-gradient-to-r from-accent via-emerald-400 to-teal-300 h-full transition-all duration-700 ease-out shadow-sm"
+                    style={{ width: replayCycle.pct }}
                   />
                 </div>
+                <div className="text-[10px] text-muted text-right">Timestamp: {replayCycle.time} UTC</div>
               </div>
             </div>
           </GlassCard>
-        </motion.div>
+        </div>
 
         {/* Card 5: Human Approval Gate */}
-        <motion.div variants={cardRevealVariants} className="motion-safe-reveal">
-          <GlassCard spotlight className="p-6 sm:p-8 h-full">
+        <div>
+          <GlassCard spotlight className="p-7 sm:p-8 h-full">
             <div className="flex flex-col justify-between h-full">
               <div>
-                <div className="w-10 h-10 rounded-lg bg-success/10 border border-success/25 flex items-center justify-center text-success mb-4">
-                  <ShieldCheck className="w-5 h-5" />
+                <div className="w-12 h-12 rounded-xl bg-success/15 border border-success/30 flex items-center justify-center text-success mb-5">
+                  <ShieldCheck className="w-6 h-6" />
                 </div>
-                <h3 className="text-xl font-bold text-foreground mb-2 font-display tracking-tight">
+                <h3 className="text-xl font-bold text-foreground mb-3 font-display tracking-tight">
                   Human Approval Gate
                 </h3>
                 <p className="text-sm text-muted leading-relaxed mb-6 font-sans">
@@ -279,20 +264,26 @@ export function FeatureBento() {
                   levels, and record decisions without raw shell execution.
                 </p>
               </div>
-
-              <div className="flex items-center justify-between text-xs font-mono text-success bg-background/90 p-3 rounded-lg border border-white/[0.07]">
-                <span className="flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-success" />
-                  <span>Operator Approval</span>
+              <div className="flex items-center justify-between text-xs font-mono text-success bg-background/90 p-4 rounded-xl border border-white/[0.09]">
+                <span className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-success" />
+                  <span className="font-semibold text-foreground">Operator Approval</span>
                 </span>
-                <span className="text-[10px] bg-warning/15 text-warning px-2 py-0.5 rounded border border-warning/30 font-bold shadow-[0_0_12px_-3px_rgba(251,191,36,0.35)]">
+                <span
+                  className={cn(
+                    "text-[10.5px] px-2.5 py-1 rounded-md border font-bold transition-all duration-500",
+                    activeApprovalPulse
+                      ? "bg-warning/25 text-warning border-warning/50 shadow-[0_0_14px_-2px_rgba(251,191,36,0.5)]"
+                      : "bg-warning/15 text-warning border-warning/30"
+                  )}
+                >
                   PENDING
                 </span>
               </div>
             </div>
           </GlassCard>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
     </section>
   );
 }

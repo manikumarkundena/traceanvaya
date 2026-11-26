@@ -1,164 +1,197 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import { motion, useMotionValue, useReducedMotion, useSpring } from "motion/react";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 
-interface NodePoint {
+interface ConstellationNode {
   id: string;
-  cx: number;
-  cy: number;
+  label: string;
+  service: string;
+  x: number;
+  y: number;
   r: number;
-  fill: string;
-  delay: number;
-  pulse?: boolean;
+  color: string;
+  halo: number;
+  severity: "CRITICAL" | "WARN" | "ERROR" | "INFO";
 }
 
-const NODES: NodePoint[] = [
-  { id: "n1", cx: 330, cy: 68, r: 4.5, fill: "#5EEAD4", delay: 0.35, pulse: true },
-  { id: "n2", cx: 248, cy: 102, r: 3.5, fill: "#34D399", delay: 0.48 },
-  { id: "n3", cx: 312, cy: 178, r: 4, fill: "#5EEAD4", delay: 0.6, pulse: true },
-  { id: "n4", cx: 192, cy: 192, r: 3.2, fill: "#60A5FA", delay: 0.72 },
-  { id: "n5", cx: 262, cy: 268, r: 3.8, fill: "#34D399", delay: 0.84 },
-  { id: "n6", cx: 368, cy: 302, r: 5, fill: "#5EEAD4", delay: 0.96, pulse: true },
-  { id: "n7", cx: 145, cy: 122, r: 2.8, fill: "#5EEAD4", delay: 0.66 },
+const NODES: ConstellationNode[] = [
+  { id: "ev-101", label: "ev-101", service: "ingress-lb", x: 380, y: 70, r: 5, color: "#60A5FA", halo: 22, severity: "INFO" },
+  { id: "ev-104", label: "ev-104", service: "order-billing", x: 260, y: 110, r: 5.5, color: "#FBBF24", halo: 24, severity: "WARN" },
+  { id: "ev-105", label: "ev-105", service: "order-billing", x: 350, y: 195, r: 6, color: "#F87171", halo: 26, severity: "ERROR" },
+  { id: "ev-106", label: "ev-106", service: "hikari-pool", x: 190, y: 210, r: 5, color: "#F87171", halo: 22, severity: "ERROR" },
+  { id: "ev-108", label: "ev-108", service: "ledger-db", x: 285, y: 300, r: 5.5, color: "#34D399", halo: 24, severity: "INFO" },
+  { id: "ev-110", label: "ev-110", service: "checkout-api", x: 420, y: 325, r: 6.5, color: "#5EEAD4", halo: 28, severity: "CRITICAL" },
+  { id: "ev-114", label: "ev-114", service: "auth-guard", x: 145, y: 125, r: 4.5, color: "#60A5FA", halo: 20, severity: "INFO" },
 ];
 
 const PATHS = [
-  { id: "p1", d: "M 330 68 L 248 102 L 312 178 L 262 268 L 368 302", dashed: true, dur: "4.6s" },
-  { id: "p2", d: "M 248 102 L 192 192 L 262 268", dashed: false, dur: "5.4s" },
-  { id: "p3", d: "M 330 68 L 312 178 L 368 302", dashed: false, dur: "6.2s" },
-  { id: "p4", d: "M 145 122 L 248 102", dashed: true, dur: "3.8s" },
-];
+  "M 145 125 L 260 110 L 380 70",
+  "M 260 110 L 190 210 L 285 300 L 420 325",
+  "M 380 70 L 350 195 L 420 325",
+  "M 260 110 L 350 195 L 285 300",
+  "M 145 125 L 190 210",
+] as const;
 
-/**
- * Decorative living evidence constellation in the hero top-right.
- * Uses deterministic coordinates to avoid hydration mismatches.
- * Clearly decorative (aria-hidden) and separate from live telemetry.
- */
 export function EvidenceConstellation() {
-  const containerRef = useRef<HTMLDivElement>(null);
   const prefersReducedMotion = useReducedMotion();
+  const [activePhase, setActivePhase] = useState(1);
 
-  const rawX = useMotionValue(0);
-  const rawY = useMotionValue(0);
-  const springX = useSpring(rawX, { stiffness: 90, damping: 24 });
-  const springY = useSpring(rawY, { stiffness: 90, damping: 24 });
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 120, damping: 26 });
+  const springY = useSpring(mouseY, { stiffness: 120, damping: 26 });
 
+  // Sequential evidence correlation cycle
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+    const interval = setInterval(() => {
+      setActivePhase((prev) => (prev + 1) % NODES.length);
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [prefersReducedMotion]);
+
+  // Restrained desktop-only parallax
   useEffect(() => {
     if (prefersReducedMotion) return;
     const isFinePointer = window.matchMedia("(pointer: fine)").matches;
     if (!isFinePointer) return;
 
     const handlePointerMove = (e: PointerEvent) => {
-      const nx = (e.clientX / window.innerWidth - 0.5) * 14;
-      const ny = (e.clientY / window.innerHeight - 0.5) * 10;
-      rawX.set(nx);
-      rawY.set(ny);
+      const nx = (e.clientX / window.innerWidth - 0.5) * 22;
+      const ny = (e.clientY / window.innerHeight - 0.5) * 18;
+      mouseX.set(nx);
+      mouseY.set(ny);
     };
 
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
     return () => window.removeEventListener("pointermove", handlePointerMove);
-  }, [prefersReducedMotion, rawX, rawY]);
+  }, [mouseX, mouseY, prefersReducedMotion]);
 
   return (
     <motion.div
-      ref={containerRef}
       aria-hidden="true"
-      initial={{ opacity: 0, scale: 0.94 }}
-      animate={{ opacity: 0.88, scale: 1 }}
-      transition={{ duration: 0.9, delay: 0.25, ease: EASE_OUT_EXPO }}
+      initial={{ opacity: 0.2, scale: 0.95 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.8, delay: 0.2, ease: EASE_OUT_EXPO }}
       style={prefersReducedMotion ? undefined : { x: springX, y: springY }}
-      className="motion-safe-reveal absolute top-0 right-2 lg:right-8 w-72 h-72 sm:w-96 sm:h-96 pointer-events-none select-none z-0"
+      className="motion-safe-reveal absolute -top-4 right-0 lg:right-6 w-80 h-80 sm:w-96 sm:h-96 lg:w-[480px] lg:h-[480px] pointer-events-none select-none z-0 opacity-95"
     >
-      <svg viewBox="0 0 420 380" className="w-full h-full overflow-visible" fill="none">
+      <svg viewBox="0 0 500 450" className="w-full h-full" fill="none">
         <defs>
-          <radialGradient id="constellationNodeGlow" cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.45" />
-            <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
-          </radialGradient>
-          <linearGradient id="constellationTraceLine" x1="0%" y1="0%" x2="100%" y2="100%">
+          <radialGradient id="stage32NodeGlow" cx="50%" cy="50%" r="50%">
             <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.55" />
-            <stop offset="100%" stopColor="#10B981" stopOpacity="0.16" />
+            <stop offset="50%" stopColor="#10B981" stopOpacity="0.25" />
+            <stop offset="100%" stopColor="#0B1310" stopOpacity="0" />
+          </radialGradient>
+          <linearGradient id="stage32TraceLine" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.6" />
+            <stop offset="50%" stopColor="#34D399" stopOpacity="0.35" />
+            <stop offset="100%" stopColor="#10B981" stopOpacity="0.1" />
           </linearGradient>
         </defs>
 
-        {/* Base connection paths */}
-        {PATHS.map((p, idx) => (
-          <g key={p.id}>
+        {/* Base Connection Paths */}
+        {PATHS.map((d, i) => (
+          <path
+            key={`base-${i}`}
+            d={d}
+            stroke="url(#stage32TraceLine)"
+            strokeWidth="1.5"
+            strokeDasharray={i % 2 === 1 ? "5 4" : undefined}
+          />
+        ))}
+
+        {/* Travelling Luminous Data Signals along Paths */}
+        {!prefersReducedMotion &&
+          PATHS.map((d, i) => (
             <motion.path
-              d={p.d}
-              stroke="url(#constellationTraceLine)"
-              strokeWidth="1.4"
-              strokeDasharray={p.dashed ? "3 4" : undefined}
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
+              key={`signal-${i}`}
+              d={d}
+              stroke="#5EEAD4"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeDasharray="24 240"
+              initial={{ strokeDashoffset: 264, opacity: 0.3 }}
+              animate={{
+                strokeDashoffset: [264, 0],
+                opacity: [0.3, 0.95, 0.3],
+              }}
               transition={{
-                duration: 0.9,
-                delay: 0.35 + idx * 0.12,
-                ease: EASE_OUT_EXPO,
+                duration: 4.2 + i * 0.9,
+                repeat: Infinity,
+                ease: "linear",
+                delay: i * 0.7,
               }}
             />
+          ))}
 
-            {/* Travelling light signal packet along path */}
-            {!prefersReducedMotion && (
-              <circle r="2.2" fill="#5EEAD4" opacity="0.9">
-                <animateMotion dur={p.dur} repeatCount="indefinite" path={p.d} />
-              </circle>
-            )}
-          </g>
-        ))}
-
-        {/* Ambient halos & sequential nodes */}
-        {NODES.map((node, idx) => (
-          <motion.g
-            key={node.id}
-            initial={{ opacity: 0, scale: 0.4 }}
-            animate={
-              prefersReducedMotion
-                ? { opacity: 1, scale: 1 }
-                : {
-                    opacity: 1,
-                    scale: 1,
-                    y: [0, idx % 2 === 0 ? -3.5 : 3.5, 0],
-                  }
-            }
-            transition={{
-              opacity: { duration: 0.45, delay: node.delay, ease: EASE_OUT_EXPO },
-              scale: { duration: 0.45, delay: node.delay, ease: EASE_OUT_EXPO },
-              y: prefersReducedMotion
-                ? undefined
-                : {
-                    duration: 5 + (idx % 3),
-                    repeat: Infinity,
-                    ease: "easeInOut",
-                    delay: idx * 0.4,
-                  },
-            }}
-          >
-            <circle cx={node.cx} cy={node.cy} r={node.r * 4.2} fill="url(#constellationNodeGlow)" />
-
-            {node.pulse && !prefersReducedMotion && (
-              <motion.circle
-                cx={node.cx}
-                cy={node.cy}
-                r={node.r}
-                stroke="#5EEAD4"
-                strokeWidth="1"
-                initial={{ r: node.r, opacity: 0.7 }}
-                animate={{ r: node.r + 14, opacity: 0 }}
-                transition={{
-                  duration: 2.8,
-                  repeat: Infinity,
-                  delay: node.delay + 0.5,
-                  ease: "easeOut",
-                }}
+        {/* Interconnected Evidence Nodes with Labels & Halos */}
+        {NODES.map((node, idx) => {
+          const isActive = activePhase === idx;
+          return (
+            <g key={node.id}>
+              {/* Halos */}
+              <circle
+                cx={node.x}
+                cy={node.y}
+                r={node.halo}
+                fill="url(#stage32NodeGlow)"
+                className="opacity-70"
               />
-            )}
 
-            <circle cx={node.cx} cy={node.cy} r={node.r} fill={node.fill} />
-          </motion.g>
-        ))}
+              {/* Expanding Pulse Ring on Active Node */}
+              {isActive && !prefersReducedMotion && (
+                <motion.circle
+                  cx={node.x}
+                  cy={node.y}
+                  r={node.r + 2}
+                  stroke="#5EEAD4"
+                  strokeWidth="1.5"
+                  fill="none"
+                  initial={{ r: node.r + 2, opacity: 0.9 }}
+                  animate={{ r: node.r + 22, opacity: 0 }}
+                  transition={{ duration: 1.6, ease: "easeOut" }}
+                />
+              )}
+
+              {/* Core Node */}
+              <circle
+                cx={node.x}
+                cy={node.y}
+                r={isActive ? node.r + 1.5 : node.r}
+                fill={node.color}
+                className="transition-all duration-300"
+              />
+
+              {/* Technical Node Identifier Label */}
+              <g className="transition-opacity duration-300">
+                <rect
+                  x={node.x + 8}
+                  y={node.y - 12}
+                  width="48"
+                  height="16"
+                  rx="3"
+                  fill="#0B1310"
+                  fillOpacity="0.88"
+                  stroke={isActive ? "#5EEAD4" : "#24362D"}
+                  strokeWidth="1"
+                />
+                <text
+                  x={node.x + 14}
+                  y={node.y}
+                  fill={isActive ? "#5EEAD4" : "#A3A3AC"}
+                  fontSize="9"
+                  fontFamily="var(--font-geist-mono), monospace"
+                  fontWeight={isActive ? "700" : "500"}
+                >
+                  {node.label}
+                </text>
+              </g>
+            </g>
+          );
+        })}
       </svg>
     </motion.div>
   );
