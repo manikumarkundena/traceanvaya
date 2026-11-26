@@ -12,22 +12,23 @@ TraceAnvaya is engineered around three foundational tenets:
 
 ## 2. Component Architecture
 
-### A. Frontend Layer (Next.js 15 App Router + React 19)
-- **App Router Layout (`src/app/layout.tsx`)**: Wraps application with `<CopilotKit runtimeUrl="/api/copilotkit" agent="incidentAgent">`.
-- **CopilotRuntime Proxy Route (`src/app/api/copilotkit/route.ts`)**: Bridges browser event streams to FastAPI AG-UI endpoint (`http://127.0.0.1:8000/agent`).
-- **Interactive Workspace (`src/app/workspace/page.tsx`)**:
-  - Center: AI Investigation chat with streaming markdown, tool badges, and clickable evidence citations.
-  - Right Tab 1: Investigation Canvas (Live shared state: severity, service, hypotheses, remediations).
-  - Right Tab 2: Evidence Explorer (Filtered log viewer with monospace telemetry and detail drawer).
-  - Right Tab 3: Chronological Replay (Step scrubber with play/pause and anomaly spotlight).
-  - Modal: Postmortem Studio (Markdown preview and export).
+### A. Frontend Layer (Next.js 15 App Router + React 19 + TypeScript Strict)
+- **Root Layout (`src/app/layout.tsx`)**: Global metadata and Geist Sans typography font injection (`geist/font/sans` & `geist/font/mono`).
+- **Workspace Layout (`src/app/workspace/layout.tsx`)**: Scoped `<CopilotKit runtimeUrl="/api/copilotkit" agent="incidentAgent">` ensuring the public landing page remains clean, fast, and unencumbered by agent polling.
+- **CopilotRuntime App Router Endpoint (`src/app/api/copilotkit/route.ts`)**: Implements `copilotRuntimeNextJSAppRouterEndpoint` with `CopilotRuntime` and `@ag-ui/client` `HttpAgent`, answering runtime info queries with 200 OK and routing agent runs directly to FastAPI.
+- **Modular Component Architecture (`src/components/`)**:
+  - `landing/`: `HeroSection`, `TechStrip`, `FeatureBento`, `WorkflowWalkthrough`, `ArchitectureDiagram`, `ScenarioShowcase`, `LandingFooter`.
+  - `workspace/`: `WorkspaceHeader`, `InvestigationCanvas`, `EvidenceExplorer`, `IncidentReplay`, `PostmortemModal`, `types.ts`.
+  - `chat/`: `ChatPanel`, `MessageItem`.
+  - `navigation/`: `Navbar`.
+  - `brand/`: `Logo`.
 
 ### B. Protocol Bridge (AG-UI)
-- AG-UI (Agent-User Interaction Protocol) defines the event model between CopilotKit and Pydantic AI:
-  - `RUN_STARTED`: Initiates an agent execution pass.
-  - `TEXT_DELTA`: Streams partial token outputs to the UI.
-  - `TOOL_CALL_START` & `TOOL_CALL_END`: Emits typed tool execution events.
-  - `STATE_UPDATE`: Synchronizes modified state back to the UI.
+- AG-UI (Agent-User Interaction Protocol) defines the official event model between CopilotKit and Pydantic AI:
+  - `RUN_STARTED` & `RUN_FINISHED`: Lifecycle boundaries of the agent pass.
+  - `TEXT_MESSAGE_CHUNK`: Streams partial token outputs to the UI.
+  - `TOOL_CALL_START` & `TOOL_CALL_RESULT`: Emits typed tool execution events.
+  - `STATE_SNAPSHOT` & `STATE_DELTA`: Official AG-UI protocol events for synchronizing full state trees and fine-grained differential updates back to the UI.
 
 ### C. Agentic Backend (FastAPI + Pydantic AI)
 - **`investigation_agent` (`app/agents/incident_agent.py`)**:
@@ -37,8 +38,9 @@ TraceAnvaya is engineered around three foundational tenets:
   - Manages session-scoped evidence items, scenario pre-loading, and active state cache.
 - **`LogParser` (`app/services/log_parser.py`)**:
   - High-performance regex parser with automatic secret redaction, ISO timestamp normalization, and anomaly scoring.
-- **Persistence Layer (`app/db/session.py` & `app/models/entities.py`)**:
-  - SQLAlchemy async models for sessions, evidence records, hypotheses, and human approval decisions.
+- **Persistence & Migrations Layer (`app/db/session.py`, `app/models/entities.py`, `migrations/`)**:
+  - SQLAlchemy 2.0 async engine and declarative models for sessions, evidence records, hypotheses, remediations, and activity events.
+  - Alembic async migration suite (`migrations/versions/`) supporting seamless upgrades across SQLite (`sqlite+aiosqlite`) and PostgreSQL (`postgresql+asyncpg`).
 
 ---
 

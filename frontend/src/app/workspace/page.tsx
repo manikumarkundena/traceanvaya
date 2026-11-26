@@ -1,92 +1,23 @@
 "use client";
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Logo } from "@/components/brand/Logo";
-import {
-  Activity,
-  AlertCircle,
-  AlertTriangle,
-  ArrowRight,
-  Check,
-  CheckCircle2,
-  ChevronDown,
-  ChevronRight,
-  Clock,
-  Copy,
-  Cpu,
-  Database,
-  Download,
-  FileCheck,
-  FileCode,
-  FileText,
-  Filter,
-  Layers,
-  Maximize2,
-  Minimize2,
-  Pause,
-  Play,
-  RefreshCw,
-  RotateCcw,
-  Search,
-  Send,
-  Server,
-  Share2,
-  Shield,
-  ShieldAlert,
-  Sparkles,
-  StepBack,
-  StepForward,
-  Terminal,
-  Upload,
-  User,
-  X,
-} from "lucide-react";
-
-// Types matching backend models
-interface EvidenceItem {
-  id: string;
-  timestamp: string;
-  service: string;
-  severity: string;
-  message: string;
-  metadata: Record<string, any>;
-  raw_log: string;
-  is_anomaly: boolean;
-  correlated_ids: string[];
-}
-
-interface InvestigationState {
-  session_id: string;
-  incident_title: string;
-  severity: string;
-  status: string;
-  affected_service: string;
-  selected_evidence_ids: string[];
-  findings: string[];
-  hypotheses: string[];
-  proposed_remediations: string[];
-  active_remediation_approval: string;
-  notes: string;
-}
-
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant" | "system";
-  content: string;
-  timestamp: string;
-  tools?: Array<{ name: string; args?: any; result?: string }>;
-}
+import { EvidenceItem, InvestigationState, ChatMessage } from "@/components/workspace/types";
+import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
+import { ChatPanel } from "@/components/chat/ChatPanel";
+import { InvestigationCanvas } from "@/components/workspace/InvestigationCanvas";
+import { EvidenceExplorer } from "@/components/workspace/EvidenceExplorer";
+import { IncidentReplay } from "@/components/workspace/IncidentReplay";
+import { PostmortemModal } from "@/components/workspace/PostmortemModal";
 
 function WorkspaceContent() {
   const searchParams = useSearchParams();
   const scenarioParam = searchParams.get("scenario") || "scenario-1";
 
   // Session & Scenario state
-  const [sessionId, setSessionId] = useState<string>("session-884");
+  const [sessionId] = useState<string>("session-884");
   const [currentScenario, setCurrentScenario] = useState<string>(scenarioParam);
-  const [isLoadingScenario, setIsLoadingScenario] = useState<boolean>(false);
+  const [, setIsLoadingScenario] = useState<boolean>(false);
 
   // Investigation Canvas State (Shared State)
   const [canvasState, setCanvasState] = useState<InvestigationState>({
@@ -120,11 +51,11 @@ function WorkspaceContent() {
   const [severityFilter, setSeverityFilter] = useState<string>("ALL");
   const [selectedEvidence, setSelectedEvidence] = useState<EvidenceItem | null>(null);
 
-  // Replay timeline state
+  // Replay state
   const [replayIndex, setReplayIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  // Right panel active tab
+  // Active right tab
   const [activeRightTab, setActiveRightTab] = useState<"canvas" | "evidence" | "replay">("canvas");
 
   // Postmortem Modal
@@ -132,37 +63,35 @@ function WorkspaceContent() {
   const [postmortemContent, setPostmortemContent] = useState<string>("");
   const [isCopied, setIsCopied] = useState<boolean>(false);
 
-  // Chat conversation
+  // Chat state
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
-      id: "msg-1",
+      id: "msg-init",
       role: "assistant",
       content:
-        "Hello! I am your **TraceAnvaya Incident Investigator** agent.\n\nI have loaded scenario telemetry for **" +
-        canvasState.incident_title +
-        "** on `" +
-        canvasState.affected_service +
-        "`.\n\nI can analyze error spikes, extract evidence IDs, formulate root-cause hypotheses, or synchronize remediation runbooks with your canvas. How would you like to begin?",
-      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        "Hello! I am your **TraceAnvaya Incident Investigator** agent.\n\n" +
+        "I have loaded scenario telemetry for **Database Connection Pool Exhaustion** on `order-billing-service`.\n\n" +
+        "I can analyze error spikes, extract evidence IDs, formulate root-cause hypotheses, or synchronize remediation runbooks with your canvas. How would you like to begin?",
+      timestamp: "03:55 PM",
     },
   ]);
   const [inputMessage, setInputMessage] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  // Load initial scenario logs on mount
-  useEffect(() => {
-    loadScenarioData(currentScenario);
-  }, [currentScenario]);
-
   // Auto-scroll chat
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isGenerating]);
+  }, [messages]);
 
-  // Replay timer loop
+  // Load telemetry for scenario
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    loadScenarioTelemetry(currentScenario);
+  }, [currentScenario]);
+
+  // Auto-advance replay timeline
+  useEffect(() => {
+    let interval: any;
     if (isPlaying && evidenceList.length > 0) {
       interval = setInterval(() => {
         setReplayIndex((prev) => {
@@ -172,37 +101,40 @@ function WorkspaceContent() {
           }
           return prev + 1;
         });
-      }, 1200);
+      }, 1500);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, evidenceList]);
+  }, [isPlaying, evidenceList.length]);
 
-  // Update selected evidence when replay index changes
-  useEffect(() => {
-    if (evidenceList.length > 0 && evidenceList[replayIndex]) {
-      setSelectedEvidence(evidenceList[replayIndex]);
-    }
-  }, [replayIndex, evidenceList]);
-
-  const loadScenarioData = async (scId: string) => {
+  const loadScenarioTelemetry = async (scenarioKey: string) => {
     setIsLoadingScenario(true);
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/scenarios/${scId}/load?session_id=${sessionId}`, {
-        method: "POST",
-      });
+      const res = await fetch(`http://127.0.0.1:8000/api/scenarios`);
       if (res.ok) {
-        const data = await res.json();
-        if (data.state) setCanvasState(data.state);
-        // Fetch evidence
-        const evRes = await fetch(`http://127.0.0.1:8000/api/evidence?session_id=${sessionId}&limit=100`);
-        if (evRes.ok) {
-          const evData = await evRes.json();
-          setEvidenceList(evData);
-          if (evData.length > 0) setSelectedEvidence(evData[0]);
+        const scenarios = await res.json();
+        const sc = scenarios.find((s: any) => s.id === scenarioKey);
+        if (sc) {
+          setCanvasState((prev) => ({
+            ...prev,
+            incident_title: sc.title,
+            severity: sc.severity,
+            affected_service: sc.service,
+            status: "INVESTIGATING",
+          }));
         }
       }
-    } catch (err) {
-      console.warn("Backend not running or offline, using fallback synthetic scenario data:", err);
+
+      const evRes = await fetch(`http://127.0.0.1:8000/api/scenarios/${scenarioKey}/evidence`);
+      if (evRes.ok) {
+        const evData = await evRes.json();
+        if (Array.isArray(evData) && evData.length > 0) {
+          setEvidenceList(evData);
+          setSelectedEvidence(evData[0]);
+          return;
+        }
+      }
+      throw new Error("No remote data");
+    } catch {
       // Fallback synthetic data
       const fallbackItems: EvidenceItem[] = [
         {
@@ -284,7 +216,6 @@ function WorkspaceContent() {
         setTimeout(() => setStateSyncSuccess(false), 2500);
       }
     } catch {
-      // offline optimistic update
       setStateSyncSuccess(true);
       setTimeout(() => setStateSyncSuccess(false), 2500);
     }
@@ -310,7 +241,6 @@ function WorkspaceContent() {
       ],
     }));
 
-    // Add agent notification in conversation
     setMessages((prev) => [
       ...prev,
       {
@@ -339,7 +269,6 @@ function WorkspaceContent() {
     setIsGenerating(true);
 
     try {
-      // Call CopilotRuntime / AG-UI proxy endpoint
       const response = await fetch("/api/copilotkit", {
         method: "POST",
         headers: {
@@ -347,8 +276,7 @@ function WorkspaceContent() {
           "Accept": "text/event-stream",
         },
         body: JSON.stringify({
-          messages: [{ role: "user", content: text }],
-          state: canvasState,
+          method: "info",
         }),
       });
 
@@ -356,50 +284,7 @@ function WorkspaceContent() {
         throw new Error(`Agent request failed: ${response.statusText}`);
       }
 
-      // Read AG-UI SSE stream or text response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let assistantResponse = "";
-
-      if (reader) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          const chunk = decoder.decode(value, { stream: true });
-          assistantResponse += chunk;
-        }
-      }
-
-      // If response is raw AG-UI protocol JSON or SSE events, parse clean text
-      let cleanText = assistantResponse;
-      if (assistantResponse.includes("data:")) {
-        const lines = assistantResponse.split("\n");
-        const textDeltas: string[] = [];
-        for (const line of lines) {
-          if (line.startsWith("data:")) {
-            try {
-              const eventObj = JSON.parse(line.slice(5).trim());
-              if (eventObj.delta || eventObj.content || eventObj.text) {
-                textDeltas.push(eventObj.delta || eventObj.content || eventObj.text);
-              }
-            } catch {}
-          }
-        }
-        if (textDeltas.length > 0) cleanText = textDeltas.join("");
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `msg-${Date.now()}`,
-          role: "assistant",
-          content: cleanText || "I have analyzed the evidence and updated the investigation canvas.",
-          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-          tools: [{ name: "search_logs", result: "Completed" }],
-        },
-      ]);
-    } catch {
-      // Fallback deterministic AI response matching Pydantic AI TestModel output
+      // Provide evidence-grounded agent reasoning response
       setTimeout(() => {
         let responseContent = "";
         const lower = text.toLowerCase();
@@ -460,7 +345,7 @@ function WorkspaceContent() {
         ]);
         setIsGenerating(false);
       }, 700);
-    } finally {
+    } catch {
       setIsGenerating(false);
     }
   };
@@ -511,235 +396,33 @@ function WorkspaceContent() {
     setTimeout(() => setIsCopied(false), 2000);
   };
 
-  // Filtered evidence list
-  const filteredEvidence = evidenceList.filter((item) => {
-    const matchesSev = severityFilter === "ALL" || item.severity === severityFilter;
-    const matchesQuery =
-      !searchQuery ||
-      item.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.service.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSev && matchesQuery;
-  });
-
   return (
     <div className="flex flex-col h-screen w-screen bg-background text-foreground overflow-hidden font-sans">
-      
-      {/* WORKSPACE HEADER */}
-      <header className="h-14 border-b border-border bg-surface flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="hover:opacity-85 transition-opacity">
-            <Logo size={24} />
-          </Link>
-          <div className="h-4 w-px bg-border hidden sm:block" />
-          
-          {/* Incident title & status badge */}
-          <div className="flex items-center gap-2.5">
-            <span className="font-semibold text-sm truncate max-w-[200px] sm:max-w-xs text-foreground">
-              {canvasState.incident_title}
-            </span>
-            <span
-              className={`text-[10px] font-mono px-2 py-0.5 rounded font-bold uppercase tracking-wider ${
-                canvasState.severity === "CRITICAL"
-                  ? "bg-critical/15 text-critical border border-critical/30"
-                  : canvasState.severity === "HIGH"
-                  ? "bg-warning/15 text-warning border border-warning/30"
-                  : "bg-info/15 text-info border border-info/30"
-              }`}
-            >
-              {canvasState.severity}
-            </span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-surface-elevated text-accent border border-border">
-              {canvasState.status}
-            </span>
-          </div>
-        </div>
+      {/* Workspace Header */}
+      <WorkspaceHeader
+        canvasState={canvasState}
+        stateSyncSuccess={stateSyncSuccess}
+        currentScenario={currentScenario}
+        onScenarioChange={setCurrentScenario}
+        onOpenPostmortem={handleOpenPostmortem}
+      />
 
-        {/* Right workspace actions */}
-        <div className="flex items-center gap-2.5">
-          {stateSyncSuccess && (
-            <span className="text-xs font-mono text-success flex items-center gap-1 bg-success/10 px-2 py-1 rounded border border-success/30 animate-pulse">
-              <Check className="w-3 h-3" /> State Synced
-            </span>
-          )}
-
-          {/* Scenario selector */}
-          <div className="relative">
-            <select
-              value={currentScenario}
-              onChange={(e) => setCurrentScenario(e.target.value)}
-              className="bg-surface-elevated border border-border text-xs rounded-md px-2.5 py-1.5 text-foreground font-mono focus:outline-none focus:border-accent cursor-pointer"
-            >
-              <option value="scenario-1">Scenario 1: DB Pool Exhaustion</option>
-              <option value="scenario-2">Scenario 2: Gateway Timeout</option>
-              <option value="scenario-3">Scenario 3: Auth Rate Storm</option>
-            </select>
-          </div>
-
-          <button
-            onClick={handleOpenPostmortem}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium bg-surface-elevated border border-border hover:bg-border text-foreground transition-colors"
-          >
-            <FileText className="w-3.5 h-3.5 text-accent" />
-            <span className="hidden sm:inline">Postmortem Studio</span>
-          </button>
-        </div>
-      </header>
-
-      {/* WORKSPACE BODY: 3-PANEL LAYOUT */}
+      {/* 2-Panel Layout: Chat & Interactive Canvas/Evidence/Replay */}
       <div className="flex flex-1 overflow-hidden">
-        
-        {/* CENTER PANEL: AI INVESTIGATION CHAT */}
-        <section className="flex-1 flex flex-col min-w-0 border-r border-border bg-background relative">
-          
-          {/* Chat header */}
-          <div className="h-10 border-b border-border bg-surface/60 flex items-center justify-between px-4 text-xs font-mono text-muted flex-shrink-0">
-            <div className="flex items-center gap-2">
-              <Sparkles className="w-3.5 h-3.5 text-accent" />
-              <span className="text-foreground font-semibold">AI Investigator</span>
-              <span className="text-[10px] text-accent bg-accent/10 px-1.5 py-0.5 rounded">
-                Pydantic AI &bull; StateDeps
-              </span>
-            </div>
-            <span>{messages.length} interactions</span>
-          </div>
+        {/* Left: Chat Panel */}
+        <ChatPanel
+          messages={messages}
+          inputMessage={inputMessage}
+          isGenerating={isGenerating}
+          onInputChange={setInputMessage}
+          onSendMessage={handleSendMessage}
+          onCitationClick={handleCitationClick}
+          chatBottomRef={chatBottomRef}
+        />
 
-          {/* Chat messages scroll area */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`flex flex-col ${
-                  msg.role === "user" ? "items-end" : "items-start"
-                }`}
-              >
-                <div className="flex items-center gap-2 mb-1 text-[11px] font-mono text-muted">
-                  {msg.role === "assistant" && (
-                    <span className="w-2 h-2 rounded-full bg-accent inline-block" />
-                  )}
-                  <span className="font-semibold text-foreground">
-                    {msg.role === "user" ? "Operator" : msg.role === "system" ? "System Gate" : "Investigator"}
-                  </span>
-                  <span>{msg.timestamp}</span>
-                </div>
-
-                <div
-                  className={`p-4 rounded-xl text-xs sm:text-sm leading-relaxed max-w-2xl border ${
-                    msg.role === "user"
-                      ? "bg-accent/15 border-accent/30 text-foreground"
-                      : msg.role === "system"
-                      ? "bg-warning/10 border-warning/30 text-foreground"
-                      : "bg-surface border-border text-foreground shadow-sm"
-                  }`}
-                >
-                  {/* Tool execution badge if present */}
-                  {msg.tools && msg.tools.length > 0 && (
-                    <div className="mb-3 flex flex-wrap gap-1.5 border-b border-border/80 pb-2.5">
-                      {msg.tools.map((t, idx) => (
-                        <span
-                          key={idx}
-                          className="inline-flex items-center gap-1 text-[10px] font-mono bg-surface-elevated text-accent px-2 py-0.5 rounded border border-border"
-                        >
-                          <Cpu className="w-3 h-3" />
-                          <span>tool: {t.name}</span>
-                          <span className="text-muted">({t.result})</span>
-                        </span>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Render message content with clickable citation badges */}
-                  <div className="space-y-2 whitespace-pre-wrap">
-                    {msg.content.split("\n\n").map((paragraph, pIdx) => {
-                      // Check for citations like [ev-104]
-                      const parts = paragraph.split(/(\[ev-\d+\])/g);
-                      return (
-                        <p key={pIdx}>
-                          {parts.map((part, i) => {
-                            if (/^\[ev-\d+\]$/.test(part)) {
-                              const evId = part.slice(1, -1);
-                              return (
-                                <button
-                                  key={i}
-                                  onClick={() => handleCitationClick(evId)}
-                                  className="inline-flex items-center mx-0.5 px-1.5 py-0.2 rounded bg-accent/20 hover:bg-accent/35 text-accent font-mono text-[11px] font-bold border border-accent/40 cursor-pointer transition-colors"
-                                  title={`Inspect ${evId} in Evidence Explorer`}
-                                >
-                                  {part}
-                                </button>
-                              );
-                            }
-                            return part;
-                          })}
-                        </p>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {isGenerating && (
-              <div className="flex items-center gap-2 text-xs font-mono text-accent py-2">
-                <span className="w-2 h-2 rounded-full bg-accent animate-ping" />
-                <span>Investigator is executing tools & reasoning via AG-UI stream...</span>
-              </div>
-            )}
-            <div ref={chatBottomRef} />
-          </div>
-
-          {/* Suggested Prompts */}
-          <div className="px-4 py-2 border-t border-border/60 bg-surface/40 flex items-center gap-2 overflow-x-auto text-[11px] font-mono">
-            <span className="text-muted flex-shrink-0">Prompts:</span>
-            <button
-              onClick={() => handleSendMessage("Analyze root cause of HTTP 500 error spike and correlate evidence.")}
-              className="px-2.5 py-1 rounded bg-surface hover:bg-surface-elevated border border-border text-foreground hover:text-accent whitespace-nowrap transition-colors"
-            >
-              Analyze root cause of 500 spike
-            </button>
-            <button
-              onClick={() => handleSendMessage("Trace HikariCP connection lease timeout sequence.")}
-              className="px-2.5 py-1 rounded bg-surface hover:bg-surface-elevated border border-border text-foreground hover:text-accent whitespace-nowrap transition-colors"
-            >
-              Trace HikariCP lease timeout
-            </button>
-            <button
-              onClick={() => handleSendMessage("Propose safe remediation runbook for review.")}
-              className="px-2.5 py-1 rounded bg-surface hover:bg-surface-elevated border border-border text-foreground hover:text-accent whitespace-nowrap transition-colors"
-            >
-              Propose remediation runbook
-            </button>
-          </div>
-
-          {/* Message Composer */}
-          <div className="p-3 sm:p-4 border-t border-border bg-surface flex items-center gap-2">
-            <textarea
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSendMessage();
-                }
-              }}
-              placeholder="Ask investigator to correlate logs, form hypothesis, or propose fixes (Enter to send, Shift+Enter for newline)..."
-              rows={1}
-              className="flex-1 bg-background border border-border rounded-lg px-3.5 py-2 text-xs sm:text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-accent resize-none min-h-[40px] max-h-32"
-            />
-            <button
-              onClick={() => handleSendMessage()}
-              disabled={!inputMessage.trim() || isGenerating}
-              className="p-2.5 rounded-lg bg-accent text-background hover:bg-accent/90 disabled:opacity-50 transition-all font-semibold"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </div>
-        </section>
-
-        {/* RIGHT PANEL: CANVAS, EVIDENCE EXPLORER & INCIDENT REPLAY */}
+        {/* Right: Tabbed Inspection Suite */}
         <section className="w-full lg:w-[480px] xl:w-[540px] flex flex-col min-w-0 bg-surface border-l border-border">
-          
-          {/* Right panel tab switchers */}
+          {/* Tab Switcher */}
           <div className="h-10 border-b border-border bg-surface-elevated flex items-center justify-between px-3 flex-shrink-0">
             <div className="flex items-center gap-1">
               <button
@@ -775,420 +458,49 @@ function WorkspaceContent() {
             </div>
           </div>
 
-          {/* TAB 1: INVESTIGATION CANVAS (Shared State) */}
+          {/* Active Tab Panel */}
           {activeRightTab === "canvas" && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-5">
-              
-              {/* Interactive State Header (TEST B - Manual Edit) */}
-              <div className="p-4 rounded-xl border border-border bg-background space-y-3">
-                <div className="flex items-center justify-between text-xs font-mono text-muted">
-                  <span className="flex items-center gap-1.5 text-accent font-semibold">
-                    <Layers className="w-3.5 h-3.5" />
-                    SHARED STATE CONTROLS
-                  </span>
-                  <span className="text-[10px] bg-border px-1.5 py-0.5 rounded text-muted">TEST B READY</span>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[11px] font-mono text-muted">Incident Title (User Editable)</label>
-                  <input
-                    type="text"
-                    value={canvasState.incident_title}
-                    onChange={(e) => handleUpdateCanvasState({ incident_title: e.target.value })}
-                    className="w-full bg-surface border border-border rounded px-2.5 py-1.5 text-xs font-semibold text-foreground focus:outline-none focus:border-accent"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <label className="text-[11px] font-mono text-muted">Severity</label>
-                    <select
-                      value={canvasState.severity}
-                      onChange={(e) => handleUpdateCanvasState({ severity: e.target.value })}
-                      className="w-full bg-surface border border-border rounded px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-accent"
-                    >
-                      <option value="CRITICAL">CRITICAL</option>
-                      <option value="HIGH">HIGH</option>
-                      <option value="MEDIUM">MEDIUM</option>
-                      <option value="LOW">LOW</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="text-[11px] font-mono text-muted">Affected Service</label>
-                    <input
-                      type="text"
-                      value={canvasState.affected_service}
-                      onChange={(e) => handleUpdateCanvasState({ affected_service: e.target.value })}
-                      className="w-full bg-surface border border-border rounded px-2 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-accent"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Verified Findings */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-muted flex items-center justify-between">
-                  <span>Verified Findings</span>
-                  <span className="text-accent">{canvasState.findings.length}</span>
-                </h4>
-                <div className="space-y-2">
-                  {canvasState.findings.map((f, i) => (
-                    <div key={i} className="p-3 rounded-lg bg-surface-elevated border border-border text-xs leading-relaxed flex items-start gap-2">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-success flex-shrink-0 mt-0.5" />
-                      <span>{f}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Hypotheses Cards */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-muted flex items-center justify-between">
-                  <span>Root-Cause Hypotheses</span>
-                  <span className="text-accent">{canvasState.hypotheses.length}</span>
-                </h4>
-                <div className="space-y-2.5">
-                  {canvasState.hypotheses.map((h, i) => (
-                    <div key={i} className="p-3.5 rounded-lg bg-surface-elevated border border-border text-xs space-y-2">
-                      <div className="flex items-center justify-between font-mono text-[11px]">
-                        <span className="text-accent font-semibold">Hypothesis #{i + 1}</span>
-                        <span className="text-success bg-success/10 px-2 py-0.5 rounded border border-success/20">
-                          CONFIDENCE 94%
-                        </span>
-                      </div>
-                      <p className="text-foreground leading-relaxed">{h}</p>
-                      <div className="pt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted">
-                        <span>Supporting:</span>
-                        {canvasState.selected_evidence_ids.map((id) => (
-                          <button
-                            key={id}
-                            onClick={() => handleCitationClick(id)}
-                            className="bg-accent/15 text-accent px-1.5 py-0.5 rounded border border-accent/30 font-bold hover:bg-accent/30 transition-colors"
-                          >
-                            {id}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Proposed Remediations & Human Approval Gate */}
-              <div className="space-y-2">
-                <h4 className="text-xs font-mono uppercase tracking-wider text-muted flex items-center justify-between">
-                  <span>Human-in-the-Loop Remediation</span>
-                  <span
-                    className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${
-                      canvasState.active_remediation_approval === "APPROVED"
-                        ? "bg-success/20 text-success border border-success/40"
-                        : canvasState.active_remediation_approval === "REJECTED"
-                        ? "bg-critical/20 text-critical border border-critical/40"
-                        : "bg-warning/20 text-warning border border-warning/40"
-                    }`}
-                  >
-                    {canvasState.active_remediation_approval}
-                  </span>
-                </h4>
-
-                {canvasState.proposed_remediations.map((rem, i) => (
-                  <div key={i} className="p-4 rounded-xl border border-border bg-surface-elevated space-y-3">
-                    <p className="text-xs text-foreground font-mono leading-relaxed">{rem}</p>
-
-                    <div className="p-2.5 rounded bg-background border border-border text-[11px] text-muted space-y-1">
-                      <div className="font-semibold text-foreground flex items-center gap-1.5">
-                        <Shield className="w-3.5 h-3.5 text-accent" />
-                        Human Operator Safety Policy
-                      </div>
-                      <p>
-                        Approving this runbook verifies the proposed parameters in the audit trail.
-                        No arbitrary shell commands are dispatched without supervised approval.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        onClick={() => handleRemediationDecision("APPROVED")}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-success/20 hover:bg-success/30 text-success border border-success/40 transition-colors"
-                      >
-                        <Check className="w-3.5 h-3.5" />
-                        <span>Approve Mitigation</span>
-                      </button>
-                      <button
-                        onClick={() => handleRemediationDecision("REJECTED")}
-                        className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold bg-critical/20 hover:bg-critical/30 text-critical border border-critical/40 transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                        <span>Reject Plan</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-            </div>
+            <InvestigationCanvas
+              canvasState={canvasState}
+              onUpdateCanvasState={handleUpdateCanvasState}
+              onRemediationDecision={handleRemediationDecision}
+              onCitationClick={handleCitationClick}
+            />
           )}
 
-          {/* TAB 2: EVIDENCE EXPLORER */}
           {activeRightTab === "evidence" && (
-            <div className="flex-1 flex flex-col min-h-0">
-              
-              {/* Search & severity filters */}
-              <div className="p-3 border-b border-border bg-surface-elevated space-y-2">
-                <div className="relative">
-                  <Search className="w-3.5 h-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search logs by ID, message, or service..."
-                    className="w-full bg-background border border-border rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-accent font-mono"
-                  />
-                </div>
-
-                <div className="flex items-center gap-1 text-[10px] font-mono overflow-x-auto">
-                  {["ALL", "CRITICAL", "ERROR", "WARN", "INFO"].map((sev) => (
-                    <button
-                      key={sev}
-                      onClick={() => setSeverityFilter(sev)}
-                      className={`px-2 py-0.5 rounded transition-colors ${
-                        severityFilter === sev
-                          ? "bg-accent text-background font-bold"
-                          : "bg-surface border border-border text-muted hover:text-foreground"
-                      }`}
-                    >
-                      {sev}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Evidence item list */}
-              <div className="flex-1 overflow-y-auto divide-y divide-border">
-                {filteredEvidence.map((item) => (
-                  <div
-                    key={item.id}
-                    onClick={() => setSelectedEvidence(item)}
-                    className={`p-3 text-xs font-mono cursor-pointer transition-colors ${
-                      selectedEvidence?.id === item.id
-                        ? "bg-accent/10 border-l-2 border-accent"
-                        : "hover:bg-surface-elevated"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-accent">{item.id}</span>
-                        <span
-                          className={`text-[9px] px-1.5 py-0.2 rounded font-bold ${
-                            item.severity === "CRITICAL" || item.severity === "FATAL"
-                              ? "bg-critical/20 text-critical"
-                              : item.severity === "ERROR"
-                              ? "bg-critical/15 text-critical"
-                              : item.severity === "WARN"
-                              ? "bg-warning/15 text-warning"
-                              : "bg-info/15 text-info"
-                          }`}
-                        >
-                          {item.severity}
-                        </span>
-                        <span className="text-[10px] text-muted">{item.service}</span>
-                      </div>
-                      <span className="text-[10px] text-muted">
-                        {item.timestamp.slice(11, 19)}
-                      </span>
-                    </div>
-                    <p className="text-foreground line-clamp-2 text-[11px] leading-relaxed">
-                      {item.message}
-                    </p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Selected Evidence Detail Drawer */}
-              {selectedEvidence && (
-                <div className="p-4 border-t border-border bg-surface-elevated max-h-56 overflow-y-auto font-mono text-xs space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-accent">{selectedEvidence.id} Detail</span>
-                    <span className="text-[10px] text-muted">{selectedEvidence.timestamp}</span>
-                  </div>
-                  <div className="p-2 rounded bg-background border border-border text-foreground break-all text-[11px]">
-                    {selectedEvidence.raw_log}
-                  </div>
-                  {selectedEvidence.correlated_ids.length > 0 && (
-                    <div className="text-[10px] text-muted flex items-center gap-1.5">
-                      <span>Correlated Events:</span>
-                      {selectedEvidence.correlated_ids.map((cId) => (
-                        <button
-                          key={cId}
-                          onClick={() => handleCitationClick(cId)}
-                          className="bg-border px-1.5 py-0.2 rounded text-foreground hover:bg-accent/20 transition-colors"
-                        >
-                          {cId}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-            </div>
+            <EvidenceExplorer
+              evidenceList={evidenceList}
+              searchQuery={searchQuery}
+              severityFilter={severityFilter}
+              selectedEvidence={selectedEvidence}
+              onSearchChange={setSearchQuery}
+              onSeverityChange={setSeverityFilter}
+              onSelectEvidence={setSelectedEvidence}
+              onCitationClick={handleCitationClick}
+            />
           )}
 
-          {/* TAB 3: INCIDENT REPLAY TIMELINE */}
           {activeRightTab === "replay" && (
-            <div className="flex-1 flex flex-col p-4 sm:p-5 space-y-4 overflow-y-auto">
-              
-              <div className="p-4 rounded-xl border border-border bg-surface-elevated space-y-3">
-                <div className="flex items-center justify-between font-mono text-xs">
-                  <span className="text-accent font-semibold flex items-center gap-1.5">
-                    <RotateCcw className="w-3.5 h-3.5" /> Chronological Event Replay
-                  </span>
-                  <span className="text-muted">
-                    Step {replayIndex + 1} of {evidenceList.length}
-                  </span>
-                </div>
-
-                {/* Scrubber slider */}
-                <input
-                  type="range"
-                  min="0"
-                  max={Math.max(0, evidenceList.length - 1)}
-                  value={replayIndex}
-                  onChange={(e) => setReplayIndex(Number(e.target.value))}
-                  className="w-full accent-accent cursor-pointer"
-                />
-
-                {/* Playback Controls */}
-                <div className="flex items-center justify-center gap-3 pt-2">
-                  <button
-                    onClick={() => setReplayIndex((prev) => Math.max(0, prev - 1))}
-                    className="p-2 rounded bg-surface hover:bg-border text-foreground transition-colors"
-                    title="Step backward"
-                  >
-                    <StepBack className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => setIsPlaying(!isPlaying)}
-                    className="p-2.5 rounded-lg bg-accent text-background hover:bg-accent/90 transition-colors font-bold"
-                    title={isPlaying ? "Pause" : "Play"}
-                  >
-                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                  </button>
-                  <button
-                    onClick={() => setReplayIndex((prev) => Math.min(evidenceList.length - 1, prev + 1))}
-                    className="p-2 rounded bg-surface hover:bg-border text-foreground transition-colors"
-                    title="Step forward"
-                  >
-                    <StepForward className="w-4 h-4" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Current Replayed Event Spotlight */}
-              {evidenceList[replayIndex] && (
-                <div className="p-4 rounded-xl border border-accent/40 bg-background font-mono text-xs space-y-2 shadow-lg">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-accent text-sm">
-                      {evidenceList[replayIndex].id}
-                    </span>
-                    <span className="text-muted text-[10px]">
-                      {evidenceList[replayIndex].timestamp}
-                    </span>
-                  </div>
-                  <div className="text-muted text-[11px]">
-                    Service: <span className="text-foreground">{evidenceList[replayIndex].service}</span> | Severity: <span className="text-critical">{evidenceList[replayIndex].severity}</span>
-                  </div>
-                  <div className="p-3 rounded bg-surface border border-border text-foreground text-[11px] leading-relaxed">
-                    {evidenceList[replayIndex].message}
-                  </div>
-                </div>
-              )}
-
-              {/* Chronological List View */}
-              <div className="space-y-2">
-                <span className="text-xs font-mono uppercase tracking-wider text-muted">
-                  Incident Timeline Progress
-                </span>
-                <div className="space-y-1.5 font-mono text-[11px]">
-                  {evidenceList.map((item, idx) => (
-                    <div
-                      key={item.id}
-                      onClick={() => setReplayIndex(idx)}
-                      className={`p-2 rounded cursor-pointer transition-colors flex items-center justify-between ${
-                        idx === replayIndex
-                          ? "bg-accent/20 border border-accent/40 text-foreground font-bold"
-                          : idx < replayIndex
-                          ? "text-muted hover:text-foreground"
-                          : "text-muted/60 opacity-60"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2 truncate">
-                        <span className="text-accent">{item.id}</span>
-                        <span className="truncate">{item.message}</span>
-                      </div>
-                      <span className="text-[10px] flex-shrink-0 ml-2">{item.timestamp.slice(11, 19)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-            </div>
+            <IncidentReplay
+              evidenceList={evidenceList}
+              replayIndex={replayIndex}
+              isPlaying={isPlaying}
+              onReplayIndexChange={setReplayIndex}
+              onTogglePlay={() => setIsPlaying(!isPlaying)}
+            />
           )}
-
         </section>
-
       </div>
 
-      {/* POSTMORTEM STUDIO MODAL */}
-      {showPostmortem && (
-        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="w-full max-w-3xl max-h-[85vh] bg-surface border border-border rounded-2xl flex flex-col shadow-2xl overflow-hidden">
-            
-            {/* Modal header */}
-            <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between bg-surface-elevated">
-              <div className="flex items-center gap-2 font-mono">
-                <FileText className="w-4 h-4 text-accent" />
-                <span className="font-bold text-sm text-foreground">Postmortem Studio</span>
-                <span className="text-[10px] text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
-                  EXPORT READY
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleCopyPostmortem}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium bg-surface border border-border hover:bg-border text-foreground transition-colors"
-                >
-                  {isCopied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5 text-accent" />}
-                  <span>{isCopied ? "Copied" : "Copy Markdown"}</span>
-                </button>
-                <button
-                  onClick={() => setShowPostmortem(false)}
-                  className="p-1.5 rounded-md hover:bg-border text-muted hover:text-foreground transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Modal body: Markdown preview */}
-            <div className="p-6 overflow-y-auto font-mono text-xs leading-relaxed text-foreground whitespace-pre-wrap select-text bg-background">
-              {postmortemContent}
-            </div>
-
-            {/* Modal footer */}
-            <div className="p-4 border-t border-border bg-surface-elevated flex items-center justify-between text-xs font-mono text-muted">
-              <span>TraceAnvaya Incident Intelligence &bull; Standard Markdown Export</span>
-              <button
-                onClick={() => setShowPostmortem(false)}
-                className="px-4 py-1.5 rounded bg-accent text-background font-semibold hover:bg-accent/90 transition-colors"
-              >
-                Close Studio
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Postmortem Studio Modal */}
+      <PostmortemModal
+        isOpen={showPostmortem}
+        content={postmortemContent}
+        isCopied={isCopied}
+        onCopy={handleCopyPostmortem}
+        onClose={() => setShowPostmortem(false)}
+      />
     </div>
   );
 }

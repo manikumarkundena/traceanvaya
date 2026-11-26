@@ -28,8 +28,26 @@ const config: Config = {
         muted: "var(--muted)",
       },
       fontFamily: {
-        sans: ["var(--font-geist)", "system-ui", "-apple-system", "sans-serif"],
-        mono: ["var(--font-jetbrains-mono)", "monospace"],
+        sans: [
+          "var(--font-geist-sans)",
+          "system-ui",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "Roboto",
+          "Helvetica Neue",
+          "Arial",
+          "sans-serif",
+        ],
+        mono: [
+          "var(--font-geist-mono)",
+          "JetBrains Mono",
+          "SFMono-Regular",
+          "Menlo",
+          "Monaco",
+          "Consolas",
+          "monospace",
+        ],
       },
       borderRadius: {
         lg: "0.5rem",

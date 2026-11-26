@@ -56,17 +56,38 @@ Delivers the result of the tool execution back to the agent reasoning context.
 }
 ```
 
-### `STATE_UPDATE`
-Emits updated shared state when the agent modifies `ctx.deps.state`.
+### `STATE_SNAPSHOT` & `STATE_DELTA`
+Official AG-UI protocol state events emitted when the agent modifies `ctx.deps.state`:
+
+- **`STATE_SNAPSHOT`**: Emits complete serialized state tree upon run start or full synchronization.
 ```json
 {
-  "type": "STATE_UPDATE",
+  "type": "STATE_SNAPSHOT",
   "state": {
     "session_id": "session-884",
     "incident_title": "Database Connection Pool Exhaustion",
     "severity": "CRITICAL",
     "status": "HYPOTHESIS_FORMED",
-    "affected_service": "order-billing-service"
+    "affected_service": "order-billing-service",
+    "selected_evidence_ids": ["ev-104", "ev-105", "ev-106"],
+    "findings": [
+      "HikariCP connection pool exhausted on order-billing-service."
+    ],
+    "hypotheses": [
+      "HikariPool-1 exhaustion caused by exclusive row lock"
+    ],
+    "active_remediation_approval": "PENDING"
+  }
+}
+```
+
+- **`STATE_DELTA`**: Emits JSON patch or scoped delta operations for fine-grained differential updates.
+```json
+{
+  "type": "STATE_DELTA",
+  "delta": {
+    "status": "MITIGATED",
+    "active_remediation_approval": "APPROVED"
   }
 }
 ```

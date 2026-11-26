@@ -1,3 +1,4 @@
+import uuid
 import pytest
 from sqlalchemy import select
 from app.db.session import init_db, AsyncSessionLocal
@@ -9,10 +10,13 @@ async def test_database_persistence_and_relationships():
     # Initialize DB schema
     await init_db()
 
+    sess_id = f"persist-sess-{uuid.uuid4().hex[:8]}"
+    ev_id = f"ev-db-{uuid.uuid4().hex[:8]}"
+
     async with AsyncSessionLocal() as session:
         # Create session
         test_session = InvestigationSessionModel(
-            id="persist-sess-1",
+            id=sess_id,
             title="Database Connection Timeout Incident",
             severity="CRITICAL",
             status="INVESTIGATING",
@@ -22,8 +26,8 @@ async def test_database_persistence_and_relationships():
 
         # Add evidence record
         test_evidence = EvidenceRecordModel(
-            id="ev-db-001",
-            session_id="persist-sess-1",
+            id=ev_id,
+            session_id=sess_id,
             timestamp="2026-11-26T14:15:32Z",
             service="billing-api",
             severity="ERROR",
@@ -38,7 +42,7 @@ async def test_database_persistence_and_relationships():
     # Query back in a new session to verify durable persistence
     async with AsyncSessionLocal() as session:
         result = await session.execute(
-            select(InvestigationSessionModel).where(InvestigationSessionModel.id == "persist-sess-1")
+            select(InvestigationSessionModel).where(InvestigationSessionModel.id == sess_id)
         )
         saved_session = result.scalar_one_or_none()
         assert saved_session is not None
@@ -46,9 +50,9 @@ async def test_database_persistence_and_relationships():
         assert saved_session.severity == "CRITICAL"
 
         ev_result = await session.execute(
-            select(EvidenceRecordModel).where(EvidenceRecordModel.session_id == "persist-sess-1")
+            select(EvidenceRecordModel).where(EvidenceRecordModel.session_id == sess_id)
         )
         saved_evidence = ev_result.scalars().all()
         assert len(saved_evidence) == 1
-        assert saved_evidence[0].id == "ev-db-001"
+        assert saved_evidence[0].id == ev_id
         assert saved_evidence[0].is_anomaly is True
