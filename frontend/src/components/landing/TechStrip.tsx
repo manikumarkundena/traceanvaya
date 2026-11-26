@@ -6,7 +6,7 @@ export function TechStrip() {
     <section className="border-y border-border bg-surface/50 py-8 px-4 sm:px-6">
       <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
         <span className="text-xs font-mono text-muted uppercase tracking-wider">
-          Verified Stack Integrations
+          Built with
         </span>
         <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-10 text-xs sm:text-sm font-mono text-foreground">
           <span className="flex items-center gap-2 hover:text-accent transition-colors">

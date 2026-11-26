@@ -1,138 +1,92 @@
 import React from "react";
 import Link from "next/link";
-import { ArrowRight, Cpu, Play } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { ProductShowcase } from "./ProductShowcase";
 
 export function HeroSection() {
   return (
-    <section className="relative pt-16 pb-20 md:pt-24 md:pb-32 px-4 sm:px-6 max-w-7xl mx-auto w-full">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 items-center">
-        {/* Left Hero Text */}
-        <div className="lg:col-span-7 flex flex-col items-start text-left">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-border text-xs font-mono text-accent mb-6 shadow-sm">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
-            AGENTIC INCIDENT INTELLIGENCE
-          </div>
+    <section className="relative pt-12 pb-24 md:pt-16 md:pb-32 px-4 sm:px-6 max-w-7xl mx-auto w-full overflow-hidden">
+      {/* Decorative Connected Evidence Nodes Network (Top Right) */}
+      <div className="absolute top-2 right-4 lg:right-12 w-72 h-72 sm:w-96 sm:h-96 pointer-events-none select-none opacity-80 z-0">
+        <svg viewBox="0 0 400 400" className="w-full h-full" fill="none">
+          <defs>
+            <radialGradient id="nodeGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.4" />
+              <stop offset="100%" stopColor="#10B981" stopOpacity="0" />
+            </radialGradient>
+            <linearGradient id="traceLine" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#5EEAD4" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="#10B981" stopOpacity="0.2" />
+            </linearGradient>
+          </defs>
 
-          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold tracking-tight leading-[1.1] text-foreground mb-6">
-            Every failure leaves a trace.{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent via-[#A7F3D0] to-accent-secondary">
-              Find the connection.
-            </span>
-          </h1>
+          {/* Connection Lines */}
+          <path d="M 330 70 L 250 100 L 310 180 L 260 270 L 370 300" stroke="url(#traceLine)" strokeWidth="1.5" strokeDasharray="3 3" />
+          <path d="M 250 100 L 190 190 L 260 270" stroke="url(#traceLine)" strokeWidth="1.5" />
+          <path d="M 330 70 L 310 180 L 370 300" stroke="url(#traceLine)" strokeWidth="1.5" />
 
-          <p className="text-base sm:text-lg text-muted max-w-2xl mb-8 leading-relaxed">
-            Investigate software failures with evidence-grounded AI. Replay incidents,
-            connect scattered signals and turn raw application logs into actionable understanding.
-          </p>
+          {/* Subtle Ambient Node Halos */}
+          <circle cx="330" cy="70" r="18" fill="url(#nodeGlow)" />
+          <circle cx="250" cy="100" r="14" fill="url(#nodeGlow)" />
+          <circle cx="310" cy="180" r="16" fill="url(#nodeGlow)" />
+          <circle cx="190" cy="190" r="14" fill="url(#nodeGlow)" />
+          <circle cx="260" cy="270" r="14" fill="url(#nodeGlow)" />
+          <circle cx="370" cy="300" r="20" fill="url(#nodeGlow)" />
 
-          <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
-            <Link
-              href="/workspace"
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-accent text-background hover:bg-accent/90 transition-all shadow-md shadow-accent/10"
-            >
-              <span>Launch Workspace</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <Link
-              href="/workspace?scenario=scenario-1"
-              className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-surface border border-border text-foreground hover:bg-surface-elevated transition-all"
-            >
-              <Play className="w-3.5 h-3.5 text-accent" />
-              <span>Explore Live Demo</span>
-            </Link>
-          </div>
+          {/* Connected Nodes */}
+          <circle cx="330" cy="70" r="4.5" fill="#5EEAD4" className="animate-pulse" />
+          <circle cx="250" cy="100" r="3.5" fill="#34D399" />
+          <circle cx="310" cy="180" r="4" fill="#5EEAD4" />
+          <circle cx="190" cy="190" r="3" fill="#60A5FA" />
+          <circle cx="260" cy="270" r="3.5" fill="#34D399" />
+          <circle cx="370" cy="300" r="5" fill="#5EEAD4" className="animate-pulse" />
+        </svg>
+      </div>
 
-          {/* Quick trust metrics */}
-          <div className="grid grid-cols-3 gap-6 pt-10 mt-10 border-t border-border/60 w-full max-w-lg">
-            <div>
-              <div className="text-xs font-mono text-muted uppercase">Protocol</div>
-              <div className="text-sm font-bold text-foreground mt-0.5">AG-UI Bidirectional</div>
-            </div>
-            <div>
-              <div className="text-xs font-mono text-muted uppercase">Agent Core</div>
-              <div className="text-sm font-bold text-foreground mt-0.5">Pydantic AI Typed</div>
-            </div>
-            <div>
-              <div className="text-xs font-mono text-muted uppercase">State Sync</div>
-              <div className="text-sm font-bold text-accent mt-0.5">Deterministic 1:1</div>
-            </div>
-          </div>
+      {/* Main Editorial Hero Content */}
+      <div className="relative z-10 max-w-4xl text-left">
+        {/* Category Pill Tag */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface border border-border text-xs font-mono text-accent mb-6 shadow-sm">
+          <span className="w-1.5 h-1.5 rounded-full bg-accent" />
+          <span>AGENTIC INCIDENT INTELLIGENCE</span>
         </div>
 
-        {/* Right Hero Technical Preview */}
-        <div className="lg:col-span-5 w-full">
-          <div className="relative rounded-xl border border-border bg-surface shadow-2xl overflow-hidden font-mono text-xs">
-            {/* Window title bar */}
-            <div className="flex items-center justify-between px-4 py-2.5 bg-surface-elevated border-b border-border">
-              <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-critical/80 inline-block" />
-                <span className="w-2.5 h-2.5 rounded-full bg-warning/80 inline-block" />
-                <span className="w-2.5 h-2.5 rounded-full bg-success/80 inline-block" />
-                <span className="ml-2 text-[11px] text-muted">traceanvaya-investigator ~ session-884</span>
-              </div>
-              <span className="text-[10px] text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
-                LIVE STREAM
-              </span>
-            </div>
+        {/* Headline with deliberate line breaks and clamp sizing */}
+        <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.08] text-foreground mb-6 font-sans">
+          Every failure<br />
+          leaves a trace.<br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-emerald-400">
+            Find the connection.
+          </span>
+        </h1>
 
-            {/* Terminal content */}
-            <div className="p-4 space-y-3.5 text-[11px] leading-relaxed">
-              <div className="text-muted flex items-center justify-between">
-                <span>[00:01.42] INGESTED 14 LOG EVENTS</span>
-                <span className="text-warning">2 ANOMALIES</span>
-              </div>
+        {/* Supporting Copy */}
+        <p className="text-base sm:text-lg text-muted max-w-2xl mb-8 leading-relaxed font-sans">
+          Investigate failures. Correlate evidence. Replay incidents.{" "}
+          <br className="hidden sm:inline" />
+          Understand what went wrong with an AI-powered workspace.
+        </p>
 
-              <div className="p-2.5 rounded bg-background border border-border/80 text-foreground">
-                <div className="text-critical flex items-center gap-1.5 font-bold">
-                  <span>[ev-106]</span> java.sql.SQLTransientConnectionException
-                </div>
-                <div className="text-muted text-[10px] mt-0.5">
-                  HikariPool-1: Connection lease timeout after 30000ms
-                </div>
-              </div>
-
-              {/* Agent Tool Activity Card */}
-              <div className="p-2.5 rounded bg-surface-elevated border border-accent/30 space-y-1.5">
-                <div className="flex items-center justify-between text-accent font-semibold">
-                  <span className="flex items-center gap-1.5">
-                    <Cpu className="w-3.5 h-3.5" />
-                    TOOL: add_hypothesis
-                  </span>
-                  <span className="text-[10px] text-success">SYNCHRONIZED</span>
-                </div>
-                <p className="text-foreground text-[10px]">
-                  HikariCP pool exhaustion caused by unindexed batch query [ev-104].
-                </p>
-                <div className="flex items-center gap-2 pt-1 text-[10px] text-muted">
-                  <span className="bg-border px-1.5 py-0.5 rounded text-foreground font-medium">Confidence: 94%</span>
-                  <span>Supporting: ev-104, ev-105, ev-106</span>
-                </div>
-              </div>
-
-              {/* Shared State Canvas snippet */}
-              <div className="p-2.5 rounded bg-background border border-border space-y-1">
-                <div className="flex items-center justify-between text-[10px] text-muted">
-                  <span>SHARED CANVAS STATE</span>
-                  <span className="text-accent">TEST A VERIFIED</span>
-                </div>
-                <div className="text-foreground font-semibold flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-critical" />
-                  Severity: CRITICAL &bull; Status: HYPOTHESIS_FORMED
-                </div>
-                <div className="text-[10px] text-muted">
-                  Affected Service: <span className="text-foreground">order-billing-service</span>
-                </div>
-              </div>
-
-              {/* Live stream indicator */}
-              <div className="flex items-center gap-2 pt-1 text-accent text-[10px]">
-                <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                <span>Agent reasoning streaming via AG-UI protocol...</span>
-              </div>
-            </div>
-          </div>
+        {/* Primary & Secondary Call to Actions */}
+        <div className="flex flex-wrap items-center gap-4 w-full sm:w-auto">
+          <Link
+            href="/workspace"
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-accent text-background hover:bg-accent/90 transition-all shadow-md shadow-accent/10"
+          >
+            <span>Start investigating</span>
+            <ArrowRight className="w-4 h-4" />
+          </Link>
+          <Link
+            href="/workspace?scenario=scenario-1"
+            className="flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-surface border border-border text-foreground hover:bg-surface-elevated transition-all"
+          >
+            <span>Explore demo</span>
+          </Link>
         </div>
       </div>
+
+      {/* Immersive Product Showcase Framing */}
+      <ProductShowcase />
     </section>
   );
 }

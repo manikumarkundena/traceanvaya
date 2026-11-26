@@ -3,27 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --background: #080B12;
-  --foreground: #E8EDF5;
-  --surface: #101622;
-  --surface-elevated: #151E2C;
-  --border: #222C3A;
+  --background: #050807;
+  --background-secondary: #080D0B;
+  --foreground: #F4F4F5;
+  --surface: #101713;
+  --surface-elevated: #151E1A;
+  --border: #26382F;
   --accent: #5EEAD4;
+  --emerald: #10B981;
   --accent-secondary: #D8B978;
   --info: #60A5FA;
   --success: #34D399;
   --warning: #FBBF24;
   --critical: #F87171;
-  --muted: #94A3B8;
+  --muted: #A1A1AA;
 }
 
 .light {
   --background: #F8FAFC;
+  --background-secondary: #F1F5F9;
   --foreground: #0F172A;
   --surface: #FFFFFF;
-  --surface-elevated: #F1F5F9;
+  --surface-elevated: #F8FAFC;
   --border: #E2E8F0;
   --accent: #0D9488;
+  --emerald: #059669;
   --accent-secondary: #B45309;
   --info: #2563EB;
   --success: #059669;
@@ -43,14 +47,43 @@ body {
 /* Technical grid background */
 .tech-grid {
   background-image: 
-    linear-gradient(to right, rgba(34, 44, 58, 0.35) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(34, 44, 58, 0.35) 1px, transparent 1px);
+    linear-gradient(to right, rgba(38, 56, 47, 0.45) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(38, 56, 47, 0.45) 1px, transparent 1px);
   background-size: 32px 32px;
+}
+
+/* Cinematic Emerald Light Ribbons */
+.light-ribbons {
+  background: 
+    repeating-linear-gradient(
+      -70deg,
+      transparent,
+      transparent 45px,
+      rgba(16, 185, 129, 0.04) 46px,
+      rgba(16, 185, 129, 0.09) 65px,
+      transparent 66px,
+      transparent 120px
+    ),
+    radial-gradient(ellipse 70% 60% at 85% 15%, rgba(16, 185, 129, 0.22) 0%, rgba(94, 234, 212, 0.08) 35%, transparent 75%);
+}
+
+/* Subtle edge vignette */
+.vignette-overlay {
+  background: radial-gradient(circle at 50% 50%, transparent 60%, rgba(5, 8, 7, 0.85) 100%);
 }
 
 /* Ambient glow */
 .ambient-glow {
-  background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.12) 0%, rgba(8, 11, 18, 0) 70%);
+  background: radial-gradient(circle at 50% 0%, rgba(94, 234, 212, 0.12) 0%, rgba(5, 8, 7, 0) 70%);
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, ::before, ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }
 
 /* Custom scrollbar for log terminals */

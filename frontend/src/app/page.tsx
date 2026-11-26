@@ -10,21 +10,25 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground relative selection:bg-accent/20 selection:text-accent">
+    <div className="flex flex-col min-h-screen bg-background text-foreground relative selection:bg-accent/20 selection:text-accent overflow-x-hidden">
+      {/* Cinematic Background System: Grid + Emerald Light Ribbons + Vignette */}
+      <div className="fixed inset-0 tech-grid pointer-events-none opacity-40 z-0" />
+      <div className="fixed inset-0 light-ribbons pointer-events-none opacity-70 z-0" />
+      <div className="fixed inset-0 vignette-overlay pointer-events-none opacity-60 z-0" />
+
+      {/* Floating Compact Navigation */}
       <Navbar mode="landing" />
 
-      {/* Ambient background glow & tech grid */}
-      <div className="absolute inset-0 tech-grid pointer-events-none opacity-40" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-5xl h-[550px] ambient-glow pointer-events-none" />
-
-      {/* Structured modular sections */}
-      <HeroSection />
-      <TechStrip />
-      <FeatureBento />
-      <WorkflowWalkthrough />
-      <ArchitectureDiagram />
-      <ScenarioShowcase />
-      <LandingFooter />
+      {/* Main Content Sections */}
+      <main className="relative z-10 flex flex-col">
+        <HeroSection />
+        <TechStrip />
+        <FeatureBento />
+        <WorkflowWalkthrough />
+        <ArchitectureDiagram />
+        <ScenarioShowcase />
+        <LandingFooter />
+      </main>
     </div>
   );
 }

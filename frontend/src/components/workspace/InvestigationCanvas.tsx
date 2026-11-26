@@ -24,7 +24,7 @@ export function InvestigationCanvas({
             <Layers className="w-3.5 h-3.5" />
             SHARED STATE CONTROLS
           </span>
-          <span className="text-[10px] bg-border px-1.5 py-0.5 rounded text-muted">TEST B READY</span>
+          <span className="text-[10px] bg-border px-1.5 py-0.5 rounded text-muted">SYNCHRONIZED</span>
         </div>
 
         <div className="space-y-1">
@@ -90,8 +90,8 @@ export function InvestigationCanvas({
             <div key={i} className="p-3.5 rounded-lg bg-surface-elevated border border-border text-xs space-y-2">
               <div className="flex items-center justify-between font-mono text-[11px]">
                 <span className="text-accent font-semibold">Hypothesis #{i + 1}</span>
-                <span className="text-success bg-success/10 px-2 py-0.5 rounded border border-success/20">
-                  CONFIDENCE 94%
+                <span className="text-accent bg-accent/10 px-2 py-0.5 rounded border border-accent/20">
+                  ACTIVE
                 </span>
               </div>
               <p className="text-foreground leading-relaxed">{h}</p>

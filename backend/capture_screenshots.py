@@ -10,9 +10,11 @@ os.makedirs(REPO_DOCS_DIR, exist_ok=True)
 
 targets = [
     ("landing_desktop_1440.png", "1440,900", "http://localhost:3000/"),
+    ("landing_desktop_1920.png", "1920,1080", "http://localhost:3000/"),
     ("landing_tablet_1024.png", "1024,768", "http://localhost:3000/"),
     ("landing_mobile_390.png", "390,844", "http://localhost:3000/"),
     ("workspace_desktop_1440.png", "1440,900", "http://localhost:3000/workspace"),
+    ("workspace_scenario_loaded.png", "1440,900", "http://localhost:3000/workspace?scenario=scenario-1"),
     ("workspace_mobile_390.png", "390,844", "http://localhost:3000/workspace"),
 ]
 
@@ -30,10 +32,9 @@ for filename, size, url in targets:
     ]
     print(f"Capturing {filename} ({size}) from {url}...")
     try:
-        res = subprocess.run(cmd, timeout=20, capture_output=True)
+        res = subprocess.run(cmd, timeout=25, capture_output=True)
         if os.path.exists(out_file) and os.path.getsize(out_file) > 0:
             print(f"  -> Success: {out_file} ({os.path.getsize(out_file)} bytes)")
-            # Copy to repository docs/screenshots
             with open(out_file, "rb") as sf, open(repo_file, "wb") as df:
                 df.write(sf.read())
         else:
@@ -41,4 +42,4 @@ for filename, size, url in targets:
     except Exception as e:
         print(f"  -> Error: {e}")
 
-print("Screenshot capture complete!")
+print("Stage 3 Screenshot capture complete!")

@@ -18,12 +18,12 @@ class IncidentAgentDeps:
 def get_agent_model():
     """Resolve model based on available environment configuration or test fallback."""
     if settings.AI_PROVIDER == "gemini" and settings.GEMINI_API_KEY:
-        # Pydantic AI supports google-gla (Gemini API)
-        return f"google-gla:{settings.AI_MODEL}"
+        # Pydantic AI uses google-genai package
+        return f"google-genai:{settings.AI_MODEL}"
     elif settings.AI_PROVIDER == "openai" and settings.OPENAI_API_KEY:
         return "openai:gpt-4o"
     elif settings.GEMINI_API_KEY:
-        return f"google-gla:{settings.AI_MODEL}"
+        return f"google-genai:{settings.AI_MODEL}"
     elif settings.OPENAI_API_KEY:
         return "openai:gpt-4o"
     else:

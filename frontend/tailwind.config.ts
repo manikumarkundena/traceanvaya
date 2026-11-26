@@ -10,7 +10,10 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
+        background: {
+          DEFAULT: "var(--background)",
+          secondary: "var(--background-secondary)",
+        },
         foreground: "var(--foreground)",
         surface: {
           DEFAULT: "var(--surface)",
@@ -19,6 +22,7 @@ const config: Config = {
         border: "var(--border)",
         accent: {
           DEFAULT: "var(--accent)",
+          emerald: "var(--emerald)",
           secondary: "var(--accent-secondary)",
         },
         info: "var(--info)",
@@ -50,9 +54,10 @@ const config: Config = {
         ],
       },
       borderRadius: {
-        lg: "0.5rem",
-        md: "0.375rem",
-        sm: "0.25rem",
+        lg: "0.5rem", // 8px
+        md: "0.375rem", // 6px
+        sm: "0.25rem", // 4px
+        xl: "0.75rem", // 12px
       },
     },
   },

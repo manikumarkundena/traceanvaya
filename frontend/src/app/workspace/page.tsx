@@ -33,7 +33,7 @@ function WorkspaceContent() {
       "Checkout API cascading into HTTP 500s (ev-110).",
     ],
     hypotheses: [
-      "HikariPool-1 exhaustion caused by exclusive row-level lock on ledger_entries (Confidence: 94%, Evidence: ev-104, ev-105, ev-106)",
+      "HikariPool-1 exhaustion caused by exclusive row-level lock on ledger_entries (Evidence: ev-104, ev-105, ev-106)",
     ],
     proposed_remediations: [
       "[HIGH] Kill batch reconciliation process pid=41920 and scale HikariCP max_connections to 40 (Steps: 3)",
