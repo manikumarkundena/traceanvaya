@@ -61,23 +61,17 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
     <header className="sticky top-0 z-50 w-full px-4 sm:px-6 pt-3 pb-2 pointer-events-none">
       <div
         className={cn(
-          "max-w-6xl mx-auto flex h-13 items-center justify-between px-4 sm:px-6 rounded-xl pointer-events-auto transition-all duration-200 relative overflow-hidden",
+          "max-w-6xl mx-auto flex h-13 items-center justify-between px-4 sm:px-6 rounded-xl pointer-events-auto transition-all duration-200",
           "backdrop-blur-md border",
           scrolled
-            ? "bg-gradient-to-b from-[#111A15]/90 to-[#080E0B]/95 border-white/[0.12] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.1),0_12px_36px_rgba(0,0,0,0.6)]"
-            : "bg-[#0C1410]/75 border-white/[0.08] shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)]"
+            ? "bg-[#0A100D]/90 border-white/[0.1] shadow-lg shadow-black/40"
+            : "bg-[#0C1310]/70 border-white/[0.06]"
         )}
       >
-        {/* Subtle Specular Top Highlight */}
-        <div
-          aria-hidden="true"
-          className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none"
-        />
-
         {/* Brand Logo */}
         <Link
           href="/"
-          className="flex items-center hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-md relative z-10"
+          className="flex items-center hover:opacity-90 transition-opacity focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent rounded-md"
         >
           <Logo size={24} />
         </Link>
@@ -86,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
         {mode === "landing" ? (
           <nav
             aria-label="Primary"
-            className="hidden md:flex items-center gap-7 text-xs font-mono text-muted relative z-10"
+            className="hidden md:flex items-center gap-7 text-xs font-sans font-medium text-muted"
           >
             {NAV_LINKS.map((item) => {
               const isActive = activeSection === item.id;
@@ -95,20 +89,20 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
                   key={item.id}
                   href={item.href}
                   className={cn(
-                    "py-1 transition-colors duration-150 relative focus-visible:outline-none focus-visible:text-foreground",
+                    "py-1 transition-colors duration-200 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm",
                     isActive ? "text-foreground font-semibold" : "hover:text-foreground"
                   )}
                 >
                   {item.label}
                   {isActive && (
-                    <span className="absolute -bottom-1 inset-x-0 h-0.5 bg-accent/80 rounded-full" />
+                    <span className="absolute -bottom-0.5 inset-x-0 h-0.5 bg-accent/80 rounded-full transition-all duration-200" />
                   )}
                 </a>
               );
             })}
           </nav>
         ) : (
-          <div className="flex items-center gap-3 relative z-10">
+          <div className="flex items-center gap-3">
             <span className="flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full bg-surface-elevated border border-border text-accent font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
               AG-UI Protocol Active
@@ -117,10 +111,10 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
         )}
 
         {/* Right CTA & Mobile Toggle */}
-        <div className="flex items-center gap-2.5 relative z-10">
+        <div className="flex items-center gap-2.5">
           <Link
             href="/workspace"
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-bold bg-accent text-[#060908] hover:bg-accent/90 active:scale-[0.98] transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4),0_2px_8px_-2px_rgba(94,234,212,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent text-background hover:bg-accent/90 active:scale-[0.98] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <span className="hidden sm:inline">Launch </span>
             <span>Workspace</span>

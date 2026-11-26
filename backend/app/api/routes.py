@@ -33,6 +33,7 @@ async def health_check():
         "service": "traceanvaya-backend",
         "ai_provider": settings.AI_PROVIDER,
         "ai_model": settings.AI_MODEL,
+        "ai_configured": bool(settings.GEMINI_API_KEY or settings.OPENAI_API_KEY),
         "environment": settings.ENVIRONMENT,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
@@ -123,6 +124,15 @@ async def load_scenario(scenario_id: str, session_id: str = "default-session"):
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to load scenario: {str(e)}")
+
+
+@router.get("/scenarios/{scenario_id}/evidence", response_model=List[EvidenceItem])
+async def get_scenario_evidence(scenario_id: str, session_id: str = "default-session"):
+    try:
+        items = evidence_store.load_scenario(session_id, scenario_id, SCENARIOS_DIR)
+        return items
+    except FileNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 
 # ==============================================================================

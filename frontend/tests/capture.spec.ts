@@ -2,18 +2,8 @@ import { test } from "@playwright/test";
 import path from "path";
 import fs from "fs";
 
-const VIEWPORTS = [
-  { name: "1920x1080", width: 1920, height: 1080 },
-  { name: "1440x900", width: 1440, height: 900 },
-  { name: "1280x800", width: 1280, height: 800 },
-  { name: "1024x768", width: 1024, height: 768 },
-  { name: "768x1024", width: 768, height: 1024 },
-  { name: "390x844", width: 390, height: 844 },
-  { name: "360x800", width: 360, height: 800 },
-];
-
-test.describe("Stage 3.4 Balanced Art Direction & Visual Verification", () => {
-  const outputDir = path.resolve(__dirname, "../../screenshots/stage-3.4");
+test.describe("Final Portfolio Deliverables Visual Capture", () => {
+  const outputDir = path.resolve(__dirname, "../../screenshots/final");
 
   test.beforeAll(async () => {
     if (!fs.existsSync(outputDir)) {
@@ -21,114 +11,86 @@ test.describe("Stage 3.4 Balanced Art Direction & Visual Verification", () => {
     }
   });
 
-  for (const vp of VIEWPORTS) {
-    test(`Capture landing full-page at ${vp.name}`, async ({ page }) => {
-      await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto("/");
-      await page.waitForTimeout(1000);
-      await page.screenshot({
-        path: path.join(outputDir, `landing-${vp.name}-fullpage.png`),
-        fullPage: true,
-      });
-    });
-
-    test(`Capture landing first-viewport at ${vp.name}`, async ({ page }) => {
-      await page.setViewportSize({ width: vp.width, height: vp.height });
-      await page.goto("/");
-      await page.waitForTimeout(800);
-      await page.screenshot({
-        path: path.join(outputDir, `landing-${vp.name}-viewport.png`),
-        fullPage: false,
-      });
-    });
-  }
-
-  test("Capture detailed sections at 1440x900", async ({ page }) => {
+  test("Capture landing desktop and mobile viewports", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto("/");
-    await page.waitForTimeout(1000);
-
-    // Hero section alone
-    const hero = page.locator("section").first();
-    await hero.screenshot({ path: path.join(outputDir, "hero-1440x900.png") });
-
-    // Product showcase alone
-    const showcase = page.locator("[perspective\\:1200px]").first();
-    if (await showcase.isVisible()) {
-      await showcase.screenshot({ path: path.join(outputDir, "product-showcase-1440x900.png") });
-    }
-
-    // Feature bento section
-    const features = page.locator("#features");
-    await features.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
-    await features.screenshot({ path: path.join(outputDir, "section-feature-bento.png") });
-
-    // Workflow lifecycle section
-    const workflow = page.locator("#workflow");
-    await workflow.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
-    await workflow.screenshot({ path: path.join(outputDir, "section-workflow.png") });
-
-    // Architecture section
-    const architecture = page.locator("#architecture");
-    await architecture.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
-    await architecture.screenshot({ path: path.join(outputDir, "section-architecture.png") });
-
-    // Scenario library section
-    const scenarios = page.locator("#scenarios");
-    await scenarios.scrollIntoViewIfNeeded();
-    await page.waitForTimeout(600);
-    await scenarios.screenshot({ path: path.join(outputDir, "section-scenarios.png") });
-  });
-
-  test("Capture workspace verification at 1440x900", async ({ page }) => {
-    await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/workspace");
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(800);
     await page.screenshot({
-      path: path.join(outputDir, `workspace-1440x900.png`),
+      path: path.join(outputDir, "landing-1440x900-viewport.png"),
+      fullPage: false,
+    });
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.waitForTimeout(800);
+    await page.screenshot({
+      path: path.join(outputDir, "landing-mobile-390x844.png"),
       fullPage: false,
     });
   });
 
-  test("Capture flagship motion showcase video clip", async ({ page }) => {
+  test("Capture complete workspace journey screenshots", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/");
-    await page.waitForTimeout(1500);
-
-    // Hover over CTA buttons
-    const cta = page.locator("a:has-text('Start investigating')").first();
-    await cta.hover();
-    await page.waitForTimeout(600);
-
-    // Scroll smoothly to Feature Bento
-    await page.locator("#features").scrollIntoViewIfNeeded();
+    await page.goto("/workspace?scenario=scenario-1");
     await page.waitForTimeout(1000);
 
-    // Hover over AI Investigator dominant card
-    const card = page.locator("text=AI Investigator").first();
-    await card.hover();
-    await page.waitForTimeout(800);
+    // 1. Workspace initial state
+    await page.screenshot({
+      path: path.join(outputDir, "workspace-initial-1440x900.png"),
+      fullPage: false,
+    });
 
-    // Scroll to Protocol & Architecture Diagram
-    await page.locator("#architecture").scrollIntoViewIfNeeded();
-    await page.waitForTimeout(1000);
+    // 2. Active investigation (click suggested prompt)
+    await page.locator("button:has-text('Analyze the error spike')").click();
+    await page.locator("h4:has-text('Root Cause Analysis')").waitFor({ state: "visible", timeout: 10000 });
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(outputDir, "workspace-active-investigation.png"),
+      fullPage: false,
+    });
 
-    // Scroll to Scenario Library
-    await page.locator("#scenarios").scrollIntoViewIfNeeded();
-    await page.waitForTimeout(800);
+    // 3. Remediation review (click Propose a remediation plan)
+    await page.locator("button:has-text('Propose a remediation plan')").click();
+    await page.locator("button:has-text('Approve Plan')").waitFor({ state: "visible", timeout: 10000 });
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(outputDir, "workspace-remediation-review.png"),
+      fullPage: false,
+    });
 
-    // Navigate to Investigation Workspace
-    await page.goto("/workspace");
-    await page.waitForTimeout(1200);
+    // 4. Evidence Explorer
+    await page.locator("button:visible:has-text('Evidence (')").first().click();
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(outputDir, "workspace-evidence-explorer.png"),
+      fullPage: false,
+    });
 
-    // Trigger state edit
-    const input = page.locator("input[value='Database Connection Pool Exhaustion']");
-    if (await input.isVisible()) {
-      await input.fill("Database Pool Exhaustion — Balanced Art Direction");
-      await page.waitForTimeout(600);
-    }
+    // 5. Replay Timeline
+    await page.locator("button:visible:has-text('Timeline')").first().click();
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(outputDir, "workspace-replay-timeline.png"),
+      fullPage: false,
+    });
+
+    // 6. Postmortem Studio
+    await page.locator("button:has-text('Postmortem Studio')").click();
+    await page.locator("text=EXPORT READY").waitFor({ state: "visible", timeout: 5000 });
+    await page.waitForTimeout(400);
+    await page.screenshot({
+      path: path.join(outputDir, "workspace-postmortem-studio.png"),
+      fullPage: false,
+    });
+  });
+
+  test("Capture mobile workspace screenshot", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/workspace?scenario=scenario-1");
+    await page.waitForTimeout(900);
+    await page.screenshot({
+      path: path.join(outputDir, "workspace-mobile-390x844.png"),
+      fullPage: false,
+    });
   });
 });

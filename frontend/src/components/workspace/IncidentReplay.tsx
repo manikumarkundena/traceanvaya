@@ -17,6 +17,14 @@ export function IncidentReplay({
   onReplayIndexChange,
   onTogglePlay,
 }: IncidentReplayProps) {
+  if (evidenceList.length === 0) {
+    return (
+      <div className="flex-1 flex items-center justify-center p-6 text-center text-xs text-muted font-sans">
+        No timeline events loaded. Select a scenario or upload a log file to replay events chronologically.
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col p-4 sm:p-5 space-y-4 overflow-y-auto">
       <div className="p-4 rounded-xl border border-white/[0.08] bg-surface-elevated space-y-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">

@@ -50,63 +50,67 @@ test.describe("TraceAnvaya Platform Verification", () => {
     await expect(page.locator("text=Runtime info request failed with status 422")).not.toBeVisible();
     await expect(page.locator("text=422")).not.toBeVisible();
 
-    // Verify tabs
-    await expect(page.locator("text=Canvas (State)")).toBeVisible();
-    await expect(page.locator("text=Evidence (").first()).toBeVisible();
-    await expect(page.locator("text=Replay Timeline")).toBeVisible();
+    // Verify simplified tabs (desktop visible tab bar)
+    await expect(page.locator("button:visible:has-text('Overview')").first()).toBeVisible();
+    await expect(page.locator("button:visible:has-text('Evidence (')").first()).toBeVisible();
+    await expect(page.locator("button:visible:has-text('Timeline')").first()).toBeVisible();
 
-    // Verify agent greeting in chat
-    await expect(page.locator("text=TraceAnvaya Incident Investigator")).toBeVisible();
+    // Verify agent greeting in chat with rendered Markdown (no raw **)
+    await expect(page.locator("text=Loaded telemetry for")).toBeVisible();
+    await expect(page.locator("text=**Database Connection Pool Exhaustion**")).not.toBeVisible();
 
     const runtime422Errors = consoleErrors.filter((e) => e.includes("422"));
     expect(runtime422Errors).toHaveLength(0);
   });
 
-  test("Workspace TEST A — Agent tool execution updates Investigation Canvas", async ({ page }) => {
+  test("Workspace TEST A — Suggested prompt updates Investigation Overview and renders Markdown", async ({ page }) => {
     await page.goto("/workspace?scenario=scenario-1");
 
-    // Click quick prompt "Analyze root cause of 500 spike"
-    const promptButton = page.locator("button:has-text('Analyze root cause of 500 spike')");
+    // Click suggested prompt "Analyze the error spike"
+    const promptButton = page.locator("button:has-text('Analyze the error spike')");
     await expect(promptButton).toBeVisible();
     await promptButton.click();
 
-    // Wait for agent reasoning response
-    await expect(page.locator("text=Root Cause Analysis & Diagnostic Trace")).toBeVisible({ timeout: 10000 });
+    // Wait for agent reasoning response (rendered Markdown heading)
+    await expect(page.locator("h4:has-text('Root Cause Analysis')")).toBeVisible({ timeout: 10000 });
 
     // Verify tool execution badges rendered
-    await expect(page.locator("text=tool: search_logs").first()).toBeVisible();
+    await expect(page.locator("text=search_logs").first()).toBeVisible();
 
-    // Verify canvas status was updated by agent to HYPOTHESIS_FORMED
-    await expect(page.locator("text=HYPOTHESIS_FORMED").first()).toBeVisible();
+    // Verify status was updated to Hypothesis Formed
+    await expect(page.locator("header span:has-text('Hypothesis Formed')").first()).toBeVisible();
   });
 
-  test("Workspace TEST B — User manual state edit and Human Approval Gate", async ({ page }) => {
+  test("Workspace TEST B — User manual state edit and Remediation Review", async ({ page }) => {
     await page.goto("/workspace?scenario=scenario-1");
 
-    // Ensure on Canvas tab
-    await page.locator("button:has-text('Canvas (State)')").click();
+    // Load example investigation to populate remediation plan for review
+    const loadExampleBtn = page.locator("button:has-text('Load example')");
+    if (await loadExampleBtn.isVisible()) {
+      await loadExampleBtn.click();
+    }
 
     // Edit incident title
-    const titleInput = page.locator("input[value='Database Connection Pool Exhaustion']");
+    const titleInput = page.locator("#incident-title-input");
     await expect(titleInput).toBeVisible();
     await titleInput.fill("Database Pool Starvation Incident");
 
     // Change severity dropdown to HIGH
-    const severitySelect = page.locator("select").nth(1);
+    const severitySelect = page.locator("#incident-severity-select");
     await severitySelect.selectOption("HIGH");
 
     // Verify header updates to HIGH
     await expect(page.locator("header span:has-text('HIGH')").first()).toBeVisible();
 
-    // Verify Human Approval Gate button is present
-    const approveBtn = page.locator("button:has-text('Approve Mitigation')");
+    // Verify Remediation Review button is present and clickable
+    const approveBtn = page.locator("button:has-text('Approve Plan')");
     await expect(approveBtn).toBeVisible();
     await approveBtn.click();
 
-    // Verify status transitions to MITIGATED
-    await expect(page.locator("header span:has-text('MITIGATED')").first()).toBeVisible();
+    // Verify status transitions to Simulated Mitigation
+    await expect(page.locator("header span:has-text('Simulated Mitigation')").first()).toBeVisible();
 
-    // Verify system notification of human approval
-    await expect(page.locator("text=Zero shell commands were executed directly")).toBeVisible();
+    // Verify system notification of simulated boundary
+    await expect(page.locator("text=No production infrastructure commands were executed")).toBeVisible();
   });
 });

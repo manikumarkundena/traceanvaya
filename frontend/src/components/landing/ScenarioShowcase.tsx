@@ -67,7 +67,7 @@ export function ScenarioShowcase() {
             const Icon = sc.icon;
             return (
               <div key={sc.id} className="h-full">
-                <GlassCard className="p-6 h-full flex flex-col justify-between space-y-5 hover:border-white/[0.14] transition-colors">
+                <GlassCard className="p-6 h-full flex flex-col justify-between space-y-5 hover:-translate-y-0.5 hover:border-white/[0.16] transition-all duration-200">
                   <div>
                     <div className="flex items-center justify-between mb-4">
                       <span

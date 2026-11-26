@@ -1,7 +1,6 @@
 import React from "react";
 import { Navbar } from "@/components/navigation/Navbar";
 import { CinematicBackground } from "@/components/landing/CinematicBackground";
-import { ArchitecturalGrid } from "@/components/landing/ArchitecturalGrid";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { TechStrip } from "@/components/landing/TechStrip";
 import { FeatureBento } from "@/components/landing/FeatureBento";
@@ -13,11 +12,8 @@ import { LandingFooter } from "@/components/landing/LandingFooter";
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground relative selection:bg-accent/20 selection:text-accent overflow-x-hidden">
-      {/* Cinematic Animated Background System (Achilles Inspired) */}
+      {/* Cinematic Animated Background System */}
       <CinematicBackground />
-
-      {/* Architectural Technical Grid (Vercel Precision Inspired) */}
-      <ArchitecturalGrid />
 
       {/* Floating Compact Navigation */}
       <Navbar mode="landing" />

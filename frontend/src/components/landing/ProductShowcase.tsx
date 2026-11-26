@@ -60,9 +60,8 @@ export function ProductShowcase() {
     target: containerRef,
     offset: ["start end", "center center"],
   });
-  const rotateX = useTransform(scrollYProgress, [0, 1], [6, 0]);
-  const scale = useTransform(scrollYProgress, [0, 1], [0.96, 1]);
-  const y = useTransform(scrollYProgress, [0, 1], [24, 0]);
+  const rotateX = useTransform(scrollYProgress, [0, 1], [4, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.98, 1]);
 
   // Restrained cycle pausing when off-screen
   useEffect(() => {
@@ -76,9 +75,9 @@ export function ProductShowcase() {
   const activeStep = DEMO_STEPS[stepIndex];
 
   return (
-    <div ref={containerRef} className="w-full mt-14 sm:mt-20 [perspective:1200px]">
+    <div ref={containerRef} className="w-full mt-10 sm:mt-12 [perspective:1200px]">
       <motion.div
-        style={prefersReducedMotion ? undefined : { rotateX, scale, y }}
+        style={prefersReducedMotion ? undefined : { rotateX, scale }}
         className="relative"
       >
         {/* Crisp Window Frame with Selective Glossy Top Highlight */}
@@ -92,10 +91,10 @@ export function ProductShowcase() {
           {/* Window Title Bar */}
           <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-[#121D18] via-[#0E1713] to-[#121D18] border-b border-white/[0.08] relative">
             <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-critical/80 inline-block" />
-              <span className="w-2.5 h-2.5 rounded-full bg-warning/80 inline-block" />
-              <span className="w-2.5 h-2.5 rounded-full bg-success/80 inline-block" />
-              <span className="ml-2 text-xs text-foreground/80 font-sans font-medium">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#F87171] inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#FBBF24] inline-block" />
+              <span className="w-2.5 h-2.5 rounded-full bg-[#34D399] inline-block" />
+              <span className="ml-2 text-xs text-foreground/85 font-sans font-medium">
                 TraceAnvaya / Investigation workspace
               </span>
             </div>

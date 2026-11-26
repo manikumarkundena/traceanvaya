@@ -3,11 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --background: #060908;
-  --background-secondary: #0A0F0D;
-  --foreground: #EDEDEF;
-  --surface: #0E1512;
-  --surface-elevated: #131E19;
+  --background: #050807;
+  --background-secondary: #080D0B;
+  --foreground: #F4F4F5;
+  --surface: #0D1411;
+  --surface-elevated: #121C18;
   --border: #1E2E25;
   --border-muted: #17241D;
   --accent: #5EEAD4;
@@ -18,8 +18,6 @@
   --warning: #FBBF24;
   --critical: #F87171;
   --muted: #94A3B8;
-
-  /* Restrained Card & Material Tokens (85% Neutral Carbon, 15% Emerald) */
   --card-bg: #0C1310;
   --card-border: #1E2D24;
 }
@@ -62,9 +60,9 @@ body {
 /* Signature Editorial Typography Utilities */
 .hero-headline {
   font-family: var(--font-space-grotesk), var(--font-geist-sans), system-ui, sans-serif;
-  font-size: clamp(3rem, 6.8vw, 5.8rem);
+  font-size: clamp(2.85rem, 5.8vw, 5.15rem);
   line-height: 1.05;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.038em;
 }
 
 .section-heading {
@@ -77,87 +75,49 @@ body {
 /* Technical grid background */
 .tech-grid {
   background-image:
-    linear-gradient(to right, rgba(30, 46, 37, 0.4) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(30, 46, 37, 0.4) 1px, transparent 1px);
-  background-size: 36px 36px;
+    linear-gradient(to right, rgba(30, 46, 37, 0.35) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(30, 46, 37, 0.35) 1px, transparent 1px);
+  background-size: 40px 40px;
 }
 
-/* Diagonal Emerald Shafts Texture (Hero Only) */
-.shafts-layer {
-  background:
-    repeating-linear-gradient(
-      -68deg,
-      transparent,
-      transparent 80px,
-      rgba(16, 185, 129, 0.04) 81px,
-      rgba(94, 234, 212, 0.09) 110px,
-      rgba(16, 185, 129, 0.03) 130px,
-      transparent 131px,
-      transparent 240px
-    );
-}
-
-/* Edge vignette */
-.vignette-overlay {
-  background: radial-gradient(ellipse 95% 85% at 50% 35%, transparent 45%, rgba(6, 9, 8, 0.85) 88%, rgba(6, 9, 8, 1) 100%);
-}
-
-/* Hero-only Continuous Motion Animations */
-@keyframes shaftDriftA {
-  0% {
-    transform: translate3d(-3%, -2%, 0) rotate(-65deg);
-    opacity: 0.28;
-  }
-  50% {
-    transform: translate3d(2%, 2%, 0) rotate(-63deg);
-    opacity: 0.46;
-  }
-  100% {
-    transform: translate3d(-3%, -2%, 0) rotate(-65deg);
-    opacity: 0.28;
-  }
-}
-
-@keyframes shaftDriftB {
-  0% {
-    transform: translate3d(2%, 2%, 0) rotate(-70deg);
-    opacity: 0.22;
-  }
-  50% {
-    transform: translate3d(-2%, -2%, 0) rotate(-67deg);
-    opacity: 0.40;
-  }
-  100% {
-    transform: translate3d(2%, 2%, 0) rotate(-70deg);
-    opacity: 0.22;
-  }
-}
-
-@keyframes glowBreathe {
+/* Achilles-inspired Cinematic Light Curtain Animations */
+@keyframes curtainSwayA {
   0%, 100% {
-    transform: scale(1) translate3d(0, 0, 0);
+    transform: translate3d(0, 0, 0) skewX(-9deg);
+    opacity: 0.78;
+  }
+
+  50% {
+    transform: translate3d(-18px, 6px, 0) skewX(-11deg);
+    opacity: 1;
+  }
+
+}
+
+@keyframes curtainSwayB {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) skewX(-12deg);
+    opacity: 0.65;
+  }
+
+  50% {
+    transform: translate3d(14px, -4px, 0) skewX(-9.5deg);
+    opacity: 0.92;
+  }
+
+}
+
+@keyframes curtainSwayC {
+
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) skewX(-7deg);
     opacity: 0.55;
   }
-  50% {
-    transform: scale(1.08) translate3d(-1.5%, 1.5%, 0);
-    opacity: 0.8;
-  }
-}
 
-@keyframes lightSweep {
-  0% {
-    transform: translate3d(-100%, -20%, 0) rotate(-66deg);
-    opacity: 0;
-  }
-  20% {
-    opacity: 0.18;
-  }
-  80% {
-    opacity: 0.16;
-  }
-  100% {
-    transform: translate3d(150%, 30%, 0) rotate(-66deg);
-    opacity: 0;
+  50% {
+    transform: translate3d(-10px, 8px, 0) skewX(-8.5deg);
+    opacity: 0.85;
   }
 }
 
@@ -165,63 +125,27 @@ body {
   0% {
     transform: translate3d(0, 0, 0);
   }
+
   100% {
     transform: translate3d(-50%, 0, 0);
   }
 }
 
-.animate-shaft-a {
-  animation: shaftDriftA 16s ease-in-out infinite;
+.animate-curtain-a {
+  animation: curtainSwayA 16s ease-in-out infinite;
+  transform-origin: top center;
   will-change: transform, opacity;
 }
 
-.animate-shaft-b {
-  animation: shaftDriftB 22s ease-in-out infinite;
+.animate-curtain-b {
+  animation: curtainSwayB 21s ease-in-out infinite;
+  transform-origin: top center;
   will-change: transform, opacity;
 }
 
-/* Achilles-inspired organic ribbon oscillation */
-@keyframes ribbonOscillateA {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.85;
-  }
-  50% {
-    transform: translate3d(-16px, 10px, 0) scale(1.04);
-    opacity: 1;
-  }
-}
-
-@keyframes ribbonOscillateB {
-  0%, 100% {
-    transform: translate3d(0, 0, 0) scale(1);
-    opacity: 0.75;
-  }
-  50% {
-    transform: translate3d(14px, -8px, 0) scale(0.96);
-    opacity: 0.95;
-  }
-}
-
-.animate-ribbon-a {
-  animation: ribbonOscillateA 18s ease-in-out infinite;
-  transform-origin: top right;
-  will-change: transform, opacity;
-}
-
-.animate-ribbon-b {
-  animation: ribbonOscillateB 24s ease-in-out infinite;
-  transform-origin: top right;
-  will-change: transform, opacity;
-}
-
-.animate-glow-breathe {
-  animation: glowBreathe 12s ease-in-out infinite;
-  will-change: transform, opacity;
-}
-
-.animate-light-sweep {
-  animation: lightSweep 18s ease-in-out infinite;
+.animate-curtain-c {
+  animation: curtainSwayC 26s ease-in-out infinite;
+  transform-origin: top center;
   will-change: transform, opacity;
 }
 
@@ -235,15 +159,18 @@ body {
   html {
     scroll-behavior: auto;
   }
-  *, ::before, ::after {
+
+  *,
+  ::before,
+  ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
-  .animate-shaft-a,
-  .animate-shaft-b,
-  .animate-glow-breathe,
-  .animate-light-sweep,
+
+  .animate-curtain-a,
+  .animate-curtain-b,
+  .animate-curtain-c,
   .animate-marquee {
     animation: none !important;
   }

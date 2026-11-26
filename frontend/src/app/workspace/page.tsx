@@ -1,7 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState, useEffect, useRef } from "react";
 import { EvidenceItem, InvestigationState, ChatMessage } from "@/components/workspace/types";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/chat/ChatPanel";
@@ -9,10 +8,18 @@ import { InvestigationCanvas } from "@/components/workspace/InvestigationCanvas"
 import { EvidenceExplorer } from "@/components/workspace/EvidenceExplorer";
 import { IncidentReplay } from "@/components/workspace/IncidentReplay";
 import { PostmortemModal } from "@/components/workspace/PostmortemModal";
+import {
+  SCENARIO_PRESETS,
+  createInitialCanvasState,
+} from "@/components/workspace/scenarioData";
+
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:8000";
 
 function WorkspaceContent() {
   const sessionId = "session-884";
   const [currentScenario, setCurrentScenario] = useState<string>("scenario-1");
+  const [backendOnline, setBackendOnline] = useState<boolean>(false);
+  const [aiMode, setAiMode] = useState<"live" | "demo">("demo");
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -21,32 +28,34 @@ function WorkspaceContent() {
       if (sc) setCurrentScenario(sc);
     }
   }, []);
-  const [, setIsLoadingScenario] = useState<boolean>(false);
 
-  // Investigation Canvas State (Shared State)
-  const [canvasState, setCanvasState] = useState<InvestigationState>({
-    session_id: "session-884",
-    incident_title: "Database Connection Pool Exhaustion",
-    severity: "CRITICAL",
-    status: "INVESTIGATING",
-    affected_service: "order-billing-service",
-    selected_evidence_ids: ["ev-104", "ev-105", "ev-106"],
-    findings: [
-      "HikariCP connection pool exhausted on order-billing-service.",
-      "Unindexed batch reconciliation query (ev-104) holding lock for >14s.",
-      "Checkout API cascading into HTTP 500s (ev-110).",
-    ],
-    hypotheses: [
-      "HikariPool-1 exhaustion caused by exclusive row-level lock on ledger_entries (Evidence: ev-104, ev-105, ev-106)",
-    ],
-    proposed_remediations: [
-      "[HIGH] Kill batch reconciliation process pid=41920 and scale HikariCP max_connections to 40 (Steps: 3)",
-    ],
-    active_remediation_approval: "PENDING",
-    notes: "Review HikariCP timeout configuration and query plan.",
-  });
+  // Check backend health & AI provider availability
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const controller = new AbortController();
+        const tid = setTimeout(() => controller.abort(), 1500);
+        const res = await fetch(`${BACKEND_URL}/api/health`, {
+          signal: controller.signal,
+        });
+        clearTimeout(tid);
+        if (res.ok) {
+          const data = await res.json();
+          setBackendOnline(true);
+          setAiMode(data.ai_configured ? "live" : "demo");
+        }
+      } catch {
+        setBackendOnline(false);
+        setAiMode("demo");
+      }
+    };
+    checkHealth();
+  }, []);
 
-  // State modification flag for TEST B feedback
+  // Investigation State (starts clean with metadata; populates progressively)
+  const [canvasState, setCanvasState] = useState<InvestigationState>(() =>
+    createInitialCanvasState(sessionId, "scenario-1")
+  );
   const [stateSyncSuccess, setStateSyncSuccess] = useState<boolean>(false);
 
   // Evidence list & filters
@@ -59,8 +68,9 @@ function WorkspaceContent() {
   const [replayIndex, setReplayIndex] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
 
-  // Active right tab
+  // Right panel tab & mobile panel switcher
   const [activeRightTab, setActiveRightTab] = useState<"canvas" | "evidence" | "replay">("canvas");
+  const [mobilePanel, setMobilePanel] = useState<"chat" | "canvas" | "evidence" | "replay">("chat");
 
   // Postmortem Modal
   const [showPostmortem, setShowPostmortem] = useState<boolean>(false);
@@ -68,34 +78,26 @@ function WorkspaceContent() {
   const [isCopied, setIsCopied] = useState<boolean>(false);
 
   // Chat state
-  const [messages, setMessages] = useState<ChatMessage[]>([
-    {
-      id: "msg-init",
-      role: "assistant",
-      content:
-        "Hello! I am your **TraceAnvaya Incident Investigator** agent.\n\n" +
-        "I have loaded scenario telemetry for **Database Connection Pool Exhaustion** on `order-billing-service`.\n\n" +
-        "I can analyze error spikes, extract evidence IDs, formulate root-cause hypotheses, or synchronize remediation runbooks with your canvas. How would you like to begin?",
-      timestamp: "03:55 PM",
-    },
-  ]);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputMessage, setInputMessage] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Auto-scroll chat
   useEffect(() => {
     chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Load telemetry for scenario
+  // Load telemetry when scenario changes
   useEffect(() => {
     loadScenarioTelemetry(currentScenario);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentScenario]);
 
   // Auto-advance replay timeline
   useEffect(() => {
-    let interval: any;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isPlaying && evidenceList.length > 0) {
       interval = setInterval(() => {
         setReplayIndex((prev) => {
@@ -107,143 +109,126 @@ function WorkspaceContent() {
         });
       }, 1500);
     }
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [isPlaying, evidenceList.length]);
 
   const loadScenarioTelemetry = async (scenarioKey: string) => {
-    setIsLoadingScenario(true);
+    const initial = createInitialCanvasState(sessionId, scenarioKey);
+    setCanvasState(initial);
+    setReplayIndex(0);
+    setIsPlaying(false);
+    setSearchQuery("");
+    setSeverityFilter("ALL");
+
+    if (scenarioKey === "custom") {
+      setEvidenceList([]);
+      setSelectedEvidence(null);
+      setMessages([
+        {
+          id: `msg-init-${Date.now()}`,
+          role: "assistant",
+          content:
+            "Workspace ready. Upload a log file (`.log`, `.txt`, `.json`) using the paperclip icon below, or select one of the synthetic incident scenarios from the header.",
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+      return;
+    }
+
+    const preset = SCENARIO_PRESETS[scenarioKey] || SCENARIO_PRESETS["scenario-1"];
+    let loadedEvidence: EvidenceItem[] = preset.evidence;
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1200);
 
-      const res = await fetch(`http://127.0.0.1:8000/api/scenarios`, {
-        signal: controller.signal,
-      }).catch(() => null);
+      // Load scenario into backend store if available
+      const loadRes = await fetch(
+        `${BACKEND_URL}/api/scenarios/${scenarioKey}/load?session_id=${sessionId}`,
+        { method: "POST", signal: controller.signal }
+      ).catch(() => null);
 
-      if (res && res.ok) {
-        const scenarios = await res.json();
-        const sc = scenarios.find((s: any) => s.id === scenarioKey);
-        if (sc) {
-          setCanvasState((prev) => ({
-            ...prev,
-            incident_title: sc.title,
-            severity: sc.severity,
-            affected_service: sc.service,
-            status: "INVESTIGATING",
-          }));
+      if (loadRes && loadRes.ok) {
+        setBackendOnline(true);
+        const evRes = await fetch(
+          `${BACKEND_URL}/api/evidence?session_id=${sessionId}&limit=100`,
+          { signal: controller.signal }
+        ).catch(() => null);
+        if (evRes && evRes.ok) {
+          const evData = await evRes.json();
+          if (Array.isArray(evData) && evData.length > 0) {
+            loadedEvidence = evData;
+          }
         }
       }
-
-      const evRes = await fetch(`http://127.0.0.1:8000/api/scenarios/${scenarioKey}/evidence`, {
-        signal: controller.signal,
-      }).catch(() => null);
-
       clearTimeout(timeoutId);
-
-      if (evRes && evRes.ok) {
-        const evData = await evRes.json();
-        if (Array.isArray(evData) && evData.length > 0) {
-          setEvidenceList(evData);
-          setSelectedEvidence(evData[0]);
-          return;
-        }
-      }
-      throw new Error("No remote data");
     } catch {
-      // Fallback synthetic data
-      const fallbackItems: EvidenceItem[] = [
-        {
-          id: "ev-101",
-          timestamp: "2026-11-26T14:15:02Z",
-          service: "ingress-lb",
-          severity: "INFO",
-          message: "GET /api/v1/orders/health 200 OK - 2ms",
-          metadata: { client_ip: "10.0.4.12" },
-          raw_log: '{"id": "ev-101", "service": "ingress-lb", "severity": "INFO", "message": "GET /api/v1/orders/health 200 OK"}',
-          is_anomaly: false,
-          correlated_ids: [],
-        },
-        {
-          id: "ev-104",
-          timestamp: "2026-11-26T14:15:32Z",
-          service: "order-billing-service",
-          severity: "WARN",
-          message: "Slow query detected: SELECT * FROM ledger_entries WHERE reconciled=false FOR UPDATE (14200ms)",
-          metadata: { query_hash: "a8f9c1", lock_mode: "exclusive" },
-          raw_log: '{"id": "ev-104", "service": "order-billing-service", "severity": "WARN", "message": "Slow query detected"}',
-          is_anomaly: true,
-          correlated_ids: ["ev-105", "ev-106"],
-        },
-        {
-          id: "ev-105",
-          timestamp: "2026-11-26T14:15:45Z",
-          service: "order-billing-service",
-          severity: "ERROR",
-          message: "HikariPool-1: Connection lease timeout! Requestor thread Thread-142 waited 30002ms",
-          metadata: { pool: "HikariPool-1", timeout_ms: 30000 },
-          raw_log: '{"id": "ev-105", "service": "order-billing-service", "severity": "ERROR", "message": "Connection lease timeout"}',
-          is_anomaly: true,
-          correlated_ids: ["ev-104", "ev-106"],
-        },
-        {
-          id: "ev-106",
-          timestamp: "2026-11-26T14:15:46Z",
-          service: "order-billing-service",
-          severity: "FATAL",
-          message: "java.sql.SQLTransientConnectionException: HikariPool-1 - Connection is not available",
-          metadata: { exception: "SQLTransientConnectionException" },
-          raw_log: '{"id": "ev-106", "service": "order-billing-service", "severity": "FATAL", "message": "SQLTransientConnectionException"}',
-          is_anomaly: true,
-          correlated_ids: ["ev-104", "ev-105"],
-        },
-        {
-          id: "ev-110",
-          timestamp: "2026-11-26T14:16:15Z",
-          service: "ingress-lb",
-          severity: "CRITICAL",
-          message: "HTTP 500 error spike: 42% of traffic to /api/v1/checkout returning 500 Internal Server Error",
-          metadata: { error_rate: 0.42 },
-          raw_log: '{"id": "ev-110", "service": "ingress-lb", "severity": "CRITICAL", "message": "HTTP 500 error spike"}',
-          is_anomaly: true,
-          correlated_ids: ["ev-105", "ev-106"],
-        },
-      ];
-      setEvidenceList(fallbackItems);
-      setSelectedEvidence(fallbackItems[1]);
-    } finally {
-      setIsLoadingScenario(false);
+      // Use preset synthetic telemetry offline
     }
+
+    setEvidenceList(loadedEvidence);
+    setSelectedEvidence(loadedEvidence[0] || null);
+    setMessages([
+      {
+        id: `msg-init-${Date.now()}`,
+        role: "assistant",
+        content:
+          `Loaded telemetry for **${preset.title}** on \`${preset.service}\` (${loadedEvidence.length} log events).\n\n` +
+          `Ask me to analyze the error spike, trace the root cause, inspect supporting evidence, or propose a remediation plan.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
   };
 
-  // TEST B: Manual user edit of InvestigationState synchronized to backend
+  // Manual user edit of InvestigationState synchronized to backend
   const handleUpdateCanvasState = async (updates: Partial<InvestigationState>) => {
     const nextState = { ...canvasState, ...updates };
     setCanvasState(nextState);
 
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/investigation/state?session_id=${sessionId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(nextState),
-      });
+      const res = await fetch(
+        `${BACKEND_URL}/api/investigation/state?session_id=${sessionId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(nextState),
+        }
+      );
       if (res.ok) {
         setStateSyncSuccess(true);
-        setTimeout(() => setStateSyncSuccess(false), 2500);
+        setTimeout(() => setStateSyncSuccess(false), 2200);
       }
     } catch {
-      setStateSyncSuccess(true);
-      setTimeout(() => setStateSyncSuccess(false), 2500);
+      // Local state still updated cleanly
     }
   };
 
-  // Human-in-the-Loop Remediation Approval / Rejection
+  // Load explicit example completed investigation for quick review
+  const handleLoadExampleInvestigation = () => {
+    const preset = SCENARIO_PRESETS[currentScenario] || SCENARIO_PRESETS["scenario-1"];
+    handleUpdateCanvasState({
+      status: "HYPOTHESIS_FORMED",
+      findings: preset.exampleCompleted.findings,
+      hypotheses: preset.exampleCompleted.hypotheses,
+      selected_evidence_ids: preset.exampleCompleted.selected_evidence_ids,
+      proposed_remediations: preset.exampleCompleted.proposed_remediations,
+      active_remediation_approval: "PENDING",
+      notes: preset.exampleCompleted.notes,
+    });
+  };
+
+  // Remediation Approval / Rejection (Simulated environment)
   const handleRemediationDecision = async (decision: "APPROVED" | "REJECTED") => {
     try {
       await fetch(
-        `http://127.0.0.1:8000/api/investigation/remediation/rem-1/decision?decision=${decision}&session_id=${sessionId}&operator=Human+Engineer`,
+        `${BACKEND_URL}/api/investigation/remediation/rem-1/decision?decision=${decision}&session_id=${sessionId}&operator=Operator`,
         { method: "POST" }
       );
-    } catch {}
+    } catch {
+      // Record locally when offline
+    }
 
     const newStatus = decision === "APPROVED" ? "MITIGATED" : "INVESTIGATING";
     setCanvasState((prev) => ({
@@ -252,7 +237,7 @@ function WorkspaceContent() {
       status: newStatus,
       findings: [
         ...prev.findings,
-        `Human Operator marked remediation as ${decision} at ${new Date().toLocaleTimeString()}.`,
+        `Operator recorded remediation decision: ${decision} (${new Date().toLocaleTimeString()}).`,
       ],
     }));
 
@@ -261,16 +246,97 @@ function WorkspaceContent() {
       {
         id: `msg-${Date.now()}`,
         role: "system",
-        content: `**Human Approval Decision Recorded**: Proposed remediation has been **${decision}**. Status updated to \`${newStatus}\`. Zero shell commands were executed directly.`,
+        content: `**Remediation Decision Recorded**: Plan marked as **${decision}** (simulated environment). Incident status updated to \`${newStatus}\`. No production infrastructure commands were executed.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },
     ]);
   };
 
-  // Send message to Agent
+  // Upload custom log file (.log, .txt, .json)
+  const handleUploadFile = async (file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      let uploadedItems: EvidenceItem[] | null = null;
+      if (backendOnline) {
+        const res = await fetch(
+          `${BACKEND_URL}/api/evidence/upload?session_id=${sessionId}`,
+          { method: "POST", body: formData }
+        );
+        if (res.ok) {
+          const evRes = await fetch(
+            `${BACKEND_URL}/api/evidence?session_id=${sessionId}&limit=100`
+          );
+          if (evRes.ok) {
+            uploadedItems = await evRes.json();
+          }
+        }
+      }
+
+      // Client-side parse fallback if offline
+      if (!uploadedItems) {
+        const text = await file.text();
+        const lines = text.split("\n").filter((l) => l.trim().length > 0);
+        uploadedItems = lines.slice(0, 100).map((line, idx) => ({
+          id: `ev-${900 + idx}`,
+          timestamp: new Date().toISOString(),
+          service: "uploaded-log",
+          severity: /error|fatal|critical|500/i.test(line)
+            ? "ERROR"
+            : /warn/i.test(line)
+            ? "WARN"
+            : "INFO",
+          message: line.slice(0, 220),
+          metadata: { filename: file.name },
+          raw_log: line,
+          is_anomaly: /error|fatal|critical|warn|500/i.test(line),
+          correlated_ids: [],
+        }));
+      }
+
+      setEvidenceList(uploadedItems);
+      setSelectedEvidence(uploadedItems[0] || null);
+      setCanvasState((prev) => ({
+        ...prev,
+        incident_title: `Imported Logs: ${file.name}`,
+        affected_service: uploadedItems?.[0]?.service || "uploaded-service",
+      }));
+
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${Date.now()}`,
+          role: "assistant",
+          content: `Imported **${uploadedItems?.length || 0} log entries** from \`${file.name}\`. You can now inspect them in the Evidence tab or ask me to analyze the anomalies.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${Date.now()}`,
+          role: "system",
+          content: `Could not parse \`${file.name}\`. Please ensure it is a valid \`.log\`, \`.txt\`, or \`.json\` file.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+    }
+  };
+
+  // Cancel ongoing generation
+  const handleCancelGeneration = () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsGenerating(false);
+  };
+
+  // Send message: Live AG-UI SSE stream when backend & key are configured,
+  // or deterministic scenario-grounded demo mode otherwise.
   const handleSendMessage = async (textToSend?: string) => {
-    const text = textToSend || inputMessage;
-    if (!text.trim() || isGenerating) return;
+    const text = (textToSend ?? inputMessage).trim();
+    if (!text || isGenerating) return;
 
     const userMsg: ChatMessage = {
       id: `msg-${Date.now()}`,
@@ -280,94 +346,204 @@ function WorkspaceContent() {
     };
 
     setMessages((prev) => [...prev, userMsg]);
-    setInputMessage("");
+    if (!textToSend) setInputMessage("");
     setIsGenerating(true);
 
-    try {
-      const response = await fetch("/api/copilotkit", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Accept": "text/event-stream",
-        },
-        body: JSON.stringify({
-          method: "info",
-        }),
-      });
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
-      if (!response.ok) {
-        throw new Error(`Agent request failed: ${response.statusText}`);
+    // Attempt real AG-UI SSE stream if live AI is configured
+    if (backendOnline && aiMode === "live") {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/agent`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "text/event-stream",
+          },
+          signal: controller.signal,
+          body: JSON.stringify({
+            threadId: sessionId,
+            runId: `run-${Date.now()}`,
+            state: canvasState,
+            messages: [
+              ...messages.map((m) => ({
+                id: m.id,
+                role: m.role === "system" ? "user" : m.role,
+                content: m.content,
+              })),
+              { id: userMsg.id, role: "user", content: text },
+            ],
+            tools: [],
+            context: [],
+          }),
+        });
+
+        if (res.ok && res.body) {
+          const reader = res.body.getReader();
+          const decoder = new TextDecoder();
+          let assistantText = "";
+          const invokedTools: Array<{ name: string; result: string }> = [];
+          const assistantMsgId = `msg-${Date.now() + 1}`;
+
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: assistantMsgId,
+              role: "assistant",
+              content: "",
+              timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            },
+          ]);
+
+          let buffer = "";
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (!line.startsWith("data:")) continue;
+              const jsonStr = line.slice(5).trim();
+              if (!jsonStr || jsonStr === "[DONE]") continue;
+              try {
+                const evt = JSON.parse(jsonStr);
+                if (evt.type === "TEXT_MESSAGE_CONTENT" && evt.delta) {
+                  assistantText += evt.delta;
+                  setMessages((prev) =>
+                    prev.map((m) =>
+                      m.id === assistantMsgId ? { ...m, content: assistantText, tools: invokedTools } : m
+                    )
+                  );
+                } else if (evt.type === "TOOL_CALL_START" && evt.toolCallName) {
+                  invokedTools.push({ name: evt.toolCallName, result: "executed" });
+                } else if (evt.type === "STATE_SNAPSHOT" && evt.snapshot) {
+                  setCanvasState((prev) => ({ ...prev, ...evt.snapshot }));
+                }
+              } catch {
+                // Ignore partial SSE JSON
+              }
+            }
+          }
+
+          setIsGenerating(false);
+          return;
+        }
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          setIsGenerating(false);
+          return;
+        }
+        // Fall through to deterministic demo mode on network error
+      }
+    }
+
+    // Deterministic Demo Mode (scenario-grounded progressive analysis)
+    setTimeout(() => {
+      if (controller.signal.aborted) return;
+
+      const preset = SCENARIO_PRESETS[currentScenario] || SCENARIO_PRESETS["scenario-1"];
+      const lower = text.toLowerCase();
+      let responseContent = "";
+      const demoTools: Array<{ name: string; result: string }> = [];
+
+      if (lower.includes("remediation") || lower.includes("fix") || lower.includes("plan")) {
+        responseContent =
+          `### Proposed Remediation Plan (Pending Review)\n\n` +
+          `Based on the findings for **${canvasState.incident_title}**, I have added a proposed mitigation plan to the **Remediation review** section:\n\n` +
+          `- **Action**: ${preset.exampleCompleted.proposed_remediations[0]}\n` +
+          `- **Safety Boundary**: Simulated environment — approving records your decision without executing shell commands.\n\n` +
+          `Use **Approve Plan** or **Reject Plan** in the Overview panel to record your decision.`;
+
+        demoTools.push({ name: "propose_remediation", result: "queued for review" });
+
+        handleUpdateCanvasState({
+          active_remediation_approval: "PENDING",
+          proposed_remediations: Array.from(
+            new Set([
+              ...canvasState.proposed_remediations,
+              ...preset.exampleCompleted.proposed_remediations,
+            ])
+          ),
+        });
+      } else if (
+        lower.includes("root cause") ||
+        lower.includes("spike") ||
+        lower.includes("timeout") ||
+        lower.includes("pool") ||
+        lower.includes("analyze")
+      ) {
+        responseContent =
+          `### Root Cause Analysis: ${canvasState.incident_title}\n\n` +
+          `Correlated telemetry on \`${canvasState.affected_service}\` reveals:\n\n` +
+          preset.exampleCompleted.findings.map((f, i) => `${i + 1}. ${f}`).join("\n") +
+          `\n\n**Working Hypothesis**: ${preset.exampleCompleted.hypotheses[0]}\n\n` +
+          `I have updated the **Overview** panel with these findings and supporting evidence references.`;
+
+        demoTools.push(
+          { name: "search_logs", result: `matched ${preset.exampleCompleted.selected_evidence_ids.length} anomalies` },
+          { name: "update_investigation", result: "updated overview" }
+        );
+
+        handleUpdateCanvasState({
+          status: "HYPOTHESIS_FORMED",
+          findings: Array.from(new Set([...canvasState.findings, ...preset.exampleCompleted.findings])),
+          hypotheses: Array.from(new Set([...canvasState.hypotheses, ...preset.exampleCompleted.hypotheses])),
+          selected_evidence_ids: Array.from(
+            new Set([
+              ...canvasState.selected_evidence_ids,
+              ...preset.exampleCompleted.selected_evidence_ids,
+            ])
+          ),
+        });
+      } else if (lower.includes("evidence") || lower.includes("unfolded") || lower.includes("timeline")) {
+        const keyIds = preset.exampleCompleted.selected_evidence_ids.map((id) => `[${id}]`).join(", ");
+        responseContent =
+          `### Supporting Evidence & Progression\n\n` +
+          `Key anomaly events in chronological order: ${keyIds}.\n\n` +
+          preset.evidence
+            .filter((e) => e.is_anomaly)
+            .map((e) => `- [${e.id}] \`${e.service}\` (${e.severity}): ${e.message}`)
+            .join("\n") +
+          `\n\nClick any evidence badge above to inspect the raw log payload in the **Evidence** tab.`;
+
+        demoTools.push({ name: "summarize_log_patterns", result: `${preset.evidence.length} events` });
+
+        handleUpdateCanvasState({
+          selected_evidence_ids: Array.from(
+            new Set([
+              ...canvasState.selected_evidence_ids,
+              ...preset.exampleCompleted.selected_evidence_ids,
+            ])
+          ),
+        });
+      } else {
+        const keyIds = preset.exampleCompleted.selected_evidence_ids.map((id) => `[${id}]`).join(", ");
+        responseContent =
+          `I reviewed the ${evidenceList.length} telemetry events for **${canvasState.incident_title}** on \`${canvasState.affected_service}\`.\n\n` +
+          `Primary anomalies appear at ${keyIds}. Would you like me to analyze the root cause or propose a remediation plan?`;
       }
 
-      // Provide evidence-grounded agent reasoning response
-      setTimeout(() => {
-        let responseContent = "";
-        const lower = text.toLowerCase();
-
-        if (lower.includes("timeout") || lower.includes("pool") || lower.includes("root cause")) {
-          responseContent =
-            "### Root Cause Analysis & Diagnostic Trace\n\n" +
-            "Based on the correlated logs, the incident sequence is clear:\n\n" +
-            "1. **Trigger**: Cron job `nightly_ledger_reconciliation_batch` ran an exclusive locked query `SELECT * FROM ledger_entries WHERE reconciled=false FOR UPDATE` ([ev-104]).\n" +
-            "2. **Contention**: The query held open database connections for **14,200ms**, starving HikariCP pool.\n" +
-            "3. **Exhaustion**: Requestor threads waited 30s before lease timeout ([ev-105]), raising `SQLTransientConnectionException` ([ev-106]).\n" +
-            "4. **Cascade**: Ingress LB reported 42% HTTP 500 error spike ([ev-110]).\n\n" +
-            "I have updated the Investigation Canvas with hypothesis and proposed remediation.";
-
-          // TEST A: Agent updates state
-          handleUpdateCanvasState({
-            status: "HYPOTHESIS_FORMED",
-            findings: [
-              ...canvasState.findings,
-              "Root cause confirmed: Exclusive locked query ev-104 starved HikariCP pool.",
-            ],
-          });
-        } else if (lower.includes("remediation") || lower.includes("fix") || lower.includes("runbook")) {
-          responseContent =
-            "### Proposed Remediation Runbook (Pending Approval)\n\n" +
-            "I have submitted a new mitigation proposal to the **Investigation Canvas**:\n\n" +
-            "- **Action**: Kill process pid `41920` holding transaction locks.\n" +
-            "- **Config Update**: Double `HikariPool-1` maximumPoolSize from 20 to 40.\n" +
-            "- **Risk Level**: `HIGH`\n\n" +
-            "Please click **Approve** or **Reject** in the Canvas panel to record your human decision.";
-
-          handleUpdateCanvasState({
-            active_remediation_approval: "PENDING",
-            proposed_remediations: [
-              ...canvasState.proposed_remediations,
-              "[HIGH] Kill batch process pid=41920 and raise HikariCP max_connections=40",
-            ],
-          });
-        } else {
-          responseContent =
-            "I have correlated the telemetry across `" +
-            canvasState.affected_service +
-            "`. Evidence IDs [ev-104], [ev-105], and [ev-106] point directly to database pool exhaustion under batch locking queries. Would you like me to generate a postmortem report?";
-        }
-
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `msg-${Date.now()}`,
-            role: "assistant",
-            content: responseContent,
-            timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-            tools: [
-              { name: "search_logs", result: "Matched 4 entries" },
-              { name: "update_investigation", result: "Synchronized state" },
-            ],
-          },
-        ]);
-        setIsGenerating(false);
-      }, 700);
-    } catch {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: `msg-${Date.now()}`,
+          role: "assistant",
+          content: responseContent,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+          tools: demoTools.length > 0 ? demoTools : undefined,
+        },
+      ]);
       setIsGenerating(false);
-    }
+    }, 550);
   };
 
   // Click on evidence citation [ev-104]
   const handleCitationClick = (evId: string) => {
     setActiveRightTab("evidence");
+    setMobilePanel("evidence");
     setSearchQuery(evId);
     const found = evidenceList.find((e) => e.id.toLowerCase() === evId.toLowerCase());
     if (found) setSelectedEvidence(found);
@@ -376,35 +552,56 @@ function WorkspaceContent() {
   // Open Postmortem modal
   const handleOpenPostmortem = async () => {
     try {
-      const res = await fetch(`http://127.0.0.1:8000/api/investigation/postmortem?session_id=${sessionId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setPostmortemContent(data.markdown_content);
-      } else {
-        throw new Error();
+      if (backendOnline) {
+        const res = await fetch(
+          `${BACKEND_URL}/api/investigation/postmortem?session_id=${sessionId}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setPostmortemContent(data.markdown_content);
+          setShowPostmortem(true);
+          return;
+        }
       }
     } catch {
-      setPostmortemContent(
-        `# Incident Postmortem: ${canvasState.incident_title}\n\n` +
-          `**Severity**: ${canvasState.severity} | **Status**: ${canvasState.status} | **Service**: ${canvasState.affected_service}\n\n` +
-          `## 1. Executive Summary\n` +
-          `A critical outage affected \`${canvasState.affected_service}\` triggered by HikariCP database connection pool starvation.\n\n` +
-          `## 2. Key Findings\n` +
-          canvasState.findings.map((f) => `- ${f}`).join("\n") +
-          `\n\n## 3. Root Cause Hypotheses\n` +
-          canvasState.hypotheses.map((h) => `- ${h}`).join("\n") +
-          `\n\n## 4. Key Evidence References\n` +
-          canvasState.selected_evidence_ids.map((id) => `- \`${id}\``).join("\n") +
-          `\n\n## 5. Remediation & Action Items\n` +
-          canvasState.proposed_remediations.map((r) => `- ${r}`).join("\n") +
-          `\n- Human Operator Approval: **${canvasState.active_remediation_approval}**\n\n` +
-          `---\n*TraceAnvaya Incident Intelligence Platform*`
-      );
+      // Fallback to local state synthesis
     }
+
+    const timelineLines =
+      evidenceList.length > 0
+        ? evidenceList
+            .filter((e) => e.is_anomaly)
+            .map((e) => `- \`${e.timestamp}\` **[${e.id}]** (${e.service}): ${e.message}`)
+            .join("\n")
+        : "- No anomaly timeline events recorded.";
+
+    setPostmortemContent(
+      `# Incident Postmortem: ${canvasState.incident_title}\n\n` +
+        `**Severity**: ${canvasState.severity} | **Status**: ${canvasState.status} | **Service**: \`${canvasState.affected_service}\`\n\n` +
+        `## 1. Incident Summary\n` +
+        `Investigation for \`${canvasState.affected_service}\` (${canvasState.severity} severity).\n\n` +
+        `## 2. Chronological Timeline\n` +
+        `${timelineLines}\n\n` +
+        `## 3. Findings\n` +
+        (canvasState.findings.length > 0
+          ? canvasState.findings.map((f) => `- ${f}`).join("\n")
+          : "- No findings recorded yet.") +
+        `\n\n## 4. Root-Cause Hypothesis\n` +
+        (canvasState.hypotheses.length > 0
+          ? canvasState.hypotheses.map((h) => `- ${h}`).join("\n")
+          : "- No root-cause hypothesis established yet.") +
+        `\n\n## 5. Remediation Decisions\n` +
+        (canvasState.proposed_remediations.length > 0
+          ? canvasState.proposed_remediations.map((r) => `- ${r}`).join("\n")
+          : "- No remediation plan proposed.") +
+        `\n- Approval Status: **${canvasState.active_remediation_approval}** (Simulated environment)\n\n` +
+        `## 6. Follow-up Actions\n` +
+        `- ${canvasState.notes || "Schedule engineering review and add regression monitoring."}\n\n` +
+        `---\n*Generated by TraceAnvaya Incident Intelligence*`
+    );
     setShowPostmortem(true);
   };
 
-  // Copy postmortem to clipboard
   const handleCopyPostmortem = () => {
     navigator.clipboard.writeText(postmortemContent);
     setIsCopied(true);
@@ -412,7 +609,7 @@ function WorkspaceContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-background text-foreground overflow-hidden font-sans">
+    <div className="flex flex-col h-screen w-screen bg-[#060908] text-foreground overflow-hidden font-sans">
       {/* Workspace Header */}
       <WorkspaceHeader
         canvasState={canvasState}
@@ -422,53 +619,98 @@ function WorkspaceContent() {
         onOpenPostmortem={handleOpenPostmortem}
       />
 
-      {/* 2-Panel Layout: Chat & Interactive Canvas/Evidence/Replay */}
+      {/* Mobile View Switcher (< lg) */}
+      <div className="lg:hidden flex items-center border-b border-white/[0.08] bg-[#0B110E] px-3 py-1.5 gap-1 flex-shrink-0">
+        {(
+          [
+            { id: "chat", label: "Investigator" },
+            { id: "canvas", label: "Overview" },
+            { id: "evidence", label: `Evidence (${evidenceList.length})` },
+            { id: "replay", label: "Timeline" },
+          ] as const
+        ).map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => {
+              setMobilePanel(tab.id);
+              if (tab.id !== "chat") setActiveRightTab(tab.id);
+            }}
+            className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium transition-colors ${
+              mobilePanel === tab.id
+                ? "bg-[#141F1A] text-accent border border-white/[0.1]"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* 2-Panel Split Layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left: Chat Panel */}
-        <ChatPanel
-          messages={messages}
-          inputMessage={inputMessage}
-          isGenerating={isGenerating}
-          onInputChange={setInputMessage}
-          onSendMessage={handleSendMessage}
-          onCitationClick={handleCitationClick}
-          chatBottomRef={chatBottomRef}
-        />
+        <div
+          className={`${
+            mobilePanel === "chat" ? "flex" : "hidden"
+          } lg:flex flex-1 min-w-0 flex-col`}
+        >
+          <ChatPanel
+            messages={messages}
+            inputMessage={inputMessage}
+            isGenerating={isGenerating}
+            aiMode={aiMode}
+            hasEvidence={evidenceList.length > 0}
+            onInputChange={setInputMessage}
+            onSendMessage={handleSendMessage}
+            onCancelGeneration={handleCancelGeneration}
+            onUploadFile={handleUploadFile}
+            onCitationClick={handleCitationClick}
+            chatBottomRef={chatBottomRef}
+          />
+        </div>
 
         {/* Right: Tabbed Inspection Suite */}
-        <section className="w-full lg:w-[480px] xl:w-[540px] flex flex-col min-w-0 bg-surface border-l border-white/[0.08]">
-          {/* Tab Switcher */}
-          <div className="h-10 border-b border-white/[0.08] bg-surface-elevated flex items-center justify-between px-3 flex-shrink-0">
-            <div className="flex items-center gap-1">
+        <section
+          className={`${
+            mobilePanel !== "chat" ? "flex" : "hidden"
+          } lg:flex w-full lg:w-[460px] xl:w-[520px] flex-col min-w-0 bg-[#080D0B] border-l border-white/[0.08]`}
+        >
+          {/* Desktop Tab Switcher */}
+          <div className="hidden lg:flex h-11 border-b border-white/[0.08] bg-[#0B110E] items-center justify-between px-3 flex-shrink-0">
+            <div className="flex items-center gap-1 font-sans">
               <button
+                type="button"
                 onClick={() => setActiveRightTab("canvas")}
-                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   activeRightTab === "canvas"
-                    ? "bg-surface text-accent border border-white/[0.1] shadow-sm"
+                    ? "bg-[#141F1A] text-accent border border-white/[0.1]"
                     : "text-muted hover:text-foreground"
                 }`}
               >
-                Canvas (State)
+                Overview
               </button>
               <button
+                type="button"
                 onClick={() => setActiveRightTab("evidence")}
-                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   activeRightTab === "evidence"
-                    ? "bg-surface text-accent border border-white/[0.1] shadow-sm"
+                    ? "bg-[#141F1A] text-accent border border-white/[0.1]"
                     : "text-muted hover:text-foreground"
                 }`}
               >
                 Evidence ({evidenceList.length})
               </button>
               <button
+                type="button"
                 onClick={() => setActiveRightTab("replay")}
-                className={`px-3 py-1.5 rounded-md text-xs font-mono font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-all active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                   activeRightTab === "replay"
-                    ? "bg-surface text-accent border border-white/[0.1] shadow-sm"
+                    ? "bg-[#141F1A] text-accent border border-white/[0.1]"
                     : "text-muted hover:text-foreground"
                 }`}
               >
-                Replay Timeline
+                Timeline
               </button>
             </div>
           </div>
@@ -477,9 +719,11 @@ function WorkspaceContent() {
           {activeRightTab === "canvas" && (
             <InvestigationCanvas
               canvasState={canvasState}
+              backendOnline={backendOnline}
               onUpdateCanvasState={handleUpdateCanvasState}
               onRemediationDecision={handleRemediationDecision}
               onCitationClick={handleCitationClick}
+              onLoadExampleInvestigation={handleLoadExampleInvestigation}
             />
           )}
 
