@@ -53,7 +53,8 @@ export function ChatPanel({
     const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
     const nearBottom = distanceFromBottom < 100;
     isNearBottomRef.current = nearBottom;
-    setShowJumpToLatest(!nearBottom && messages.length > 1);
+    const shouldShowJump = !nearBottom && messages.length > 1;
+    setShowJumpToLatest((prev) => (prev === shouldShowJump ? prev : shouldShowJump));
   };
 
   const scrollToLatest = (behavior: ScrollBehavior = "smooth") => {

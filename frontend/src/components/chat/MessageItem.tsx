@@ -13,7 +13,10 @@ interface MessageItemProps {
   onCitationClick: (evidenceId: string) => void;
 }
 
-export function MessageItem({ message, onCitationClick }: MessageItemProps) {
+export const MessageItem = React.memo(function MessageItem({
+  message,
+  onCitationClick,
+}: MessageItemProps) {
   const prefersReducedMotion = useReducedMotion();
   const isUser = message.role === "user";
   const isSystem = message.role === "system";
@@ -72,4 +75,4 @@ export function MessageItem({ message, onCitationClick }: MessageItemProps) {
       </div>
     </motion.div>
   );
-}
+});

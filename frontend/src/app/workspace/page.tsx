@@ -608,60 +608,76 @@ function WorkspaceContent() {
         ]);
 
         let buffer = "";
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
+        let rafPending = false;
+        const flushAssistantMessage = () => {
+          rafPending = false;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === assistantMsgId ? { ...m, content: assistantText, tools: [...invokedTools] } : m
+            )
+          );
+        };
+        const scheduleAssistantFlush = () => {
+          if (rafPending) return;
+          rafPending = true;
+          if (typeof window !== "undefined" && typeof window.requestAnimationFrame === "function") {
+            window.requestAnimationFrame(flushAssistantMessage);
+          } else {
+            flushAssistantMessage();
+          }
+        };
 
-          for (const line of lines) {
-            if (!line.startsWith("data:")) continue;
-            const jsonStr = line.slice(5).trim();
-            if (!jsonStr || jsonStr === "[DONE]") continue;
-            try {
-              const evt = JSON.parse(jsonStr);
-              if (evt.type === "RUN_ERROR") {
-                streamError = evt.message || "Agent execution failed.";
-              } else if (evt.type === "TEXT_MESSAGE_CONTENT" && evt.delta) {
-                assistantText += evt.delta;
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantMsgId ? { ...m, content: assistantText, tools: invokedTools } : m
-                  )
-                );
-              } else if (evt.type === "TOOL_CALL_START" && evt.toolCallName) {
-                invokedTools.push({ name: evt.toolCallName, result: "executed" });
-                setMessages((prev) =>
-                  prev.map((m) =>
-                    m.id === assistantMsgId ? { ...m, tools: [...invokedTools] } : m
-                  )
-                );
-              } else if (evt.type === "STATE_SNAPSHOT" && evt.snapshot) {
-                setCanvasState((prev) => ({ ...prev, ...evt.snapshot }));
-              } else if (evt.type === "STATE_DELTA" && Array.isArray(evt.delta)) {
-                setCanvasState((prev) => {
-                  const next: Record<string, any> = { ...prev };
-                  for (const op of evt.delta) {
-                    const key = typeof op.path === "string" ? op.path.replace(/^\//, "").split("/")[0] : "";
-                    if (!key || !(key in next)) continue;
-                    if (op.op === "replace" || op.op === "add") {
-                      if (Array.isArray(next[key]) && op.path.includes("/-")) {
-                        next[key] = [...next[key], op.value];
-                      } else {
-                        next[key] = op.value;
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const lines = buffer.split("\n");
+            buffer = lines.pop() || "";
+
+            for (const line of lines) {
+              if (!line.startsWith("data:")) continue;
+              const jsonStr = line.slice(5).trim();
+              if (!jsonStr || jsonStr === "[DONE]") continue;
+              try {
+                const evt = JSON.parse(jsonStr);
+                if (evt.type === "RUN_ERROR") {
+                  streamError = evt.message || "Agent execution failed.";
+                } else if (evt.type === "TEXT_MESSAGE_CONTENT" && evt.delta) {
+                  assistantText += evt.delta;
+                  scheduleAssistantFlush();
+                } else if (evt.type === "TOOL_CALL_START" && evt.toolCallName) {
+                  invokedTools.push({ name: evt.toolCallName, result: "executed" });
+                  scheduleAssistantFlush();
+                } else if (evt.type === "STATE_SNAPSHOT" && evt.snapshot) {
+                  setCanvasState((prev) => ({ ...prev, ...evt.snapshot }));
+                } else if (evt.type === "STATE_DELTA" && Array.isArray(evt.delta)) {
+                  setCanvasState((prev) => {
+                    const next: Record<string, any> = { ...prev };
+                    for (const op of evt.delta) {
+                      const key = typeof op.path === "string" ? op.path.replace(/^\//, "").split("/")[0] : "";
+                      if (!key || !(key in next)) continue;
+                      if (op.op === "replace" || op.op === "add") {
+                        if (Array.isArray(next[key]) && op.path.includes("/-")) {
+                          next[key] = [...next[key], op.value];
+                        } else {
+                          next[key] = op.value;
+                        }
+                      } else if (op.op === "remove" && Array.isArray(next[key])) {
+                        next[key] = [];
                       }
-                    } else if (op.op === "remove" && Array.isArray(next[key])) {
-                      next[key] = [];
                     }
-                  }
-                  return next as InvestigationState;
-                });
+                    return next as InvestigationState;
+                  });
+                }
+              } catch {
+                // Ignore partial SSE JSON
               }
-            } catch {
-              // Ignore partial SSE JSON
             }
           }
+        } finally {
+          flushAssistantMessage();
+          reader.releaseLock();
         }
 
         if (streamError) {

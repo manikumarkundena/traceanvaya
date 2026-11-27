@@ -18,14 +18,35 @@ interface ParsedListBlock {
   items: ParsedListNode[];
 }
 
+const MAX_CONTENT_CHARS = 100_000;
+const MAX_BLOCKS = 1_000;
+const MAX_LIST_DEPTH = 8;
+const MAX_INLINE_DEPTH = 4;
+
 /**
  * Safe, zero-HTML-injection Markdown renderer tailored for incident investigation chat.
  * Supports H1-H6 headings, paragraphs, bold, italic, inline code, fenced code blocks,
  * nested ordered/unordered lists, blockquotes, dividers, tables, safe http(s) links,
- * and interactive [ev-XXX] citation badges.
+ * and interactive [ev-XXX] citation badges with guaranteed forward-progress bounds.
  */
-export function MarkdownContent({ content, onCitationClick }: MarkdownContentProps) {
-  const renderInline = (text: string, keyPrefix: string): React.ReactNode[] => {
+export const MarkdownContent = React.memo(function MarkdownContent({
+  content,
+  onCitationClick,
+}: MarkdownContentProps) {
+  const safeContent =
+    content.length > MAX_CONTENT_CHARS
+      ? content.slice(0, MAX_CONTENT_CHARS) + "\n\n... (truncated for display)"
+      : content;
+
+  const renderInline = (
+    text: string,
+    keyPrefix: string,
+    depth = 0
+  ): React.ReactNode[] => {
+    if (depth >= MAX_INLINE_DEPTH) {
+      return [text];
+    }
+
     const pattern =
       /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*|\[[^\]]+\]\((https?:\/\/[^\s)]+)\)|\[ev-\d+\])/g;
     const nodes: React.ReactNode[] = [];
@@ -51,13 +72,13 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
       } else if (token.startsWith("**") && token.endsWith("**")) {
         nodes.push(
           <strong key={`${keyPrefix}-bold-${idx++}`} className="font-semibold text-white">
-            {renderInline(token.slice(2, -2), `${keyPrefix}-b-${idx}`)}
+            {renderInline(token.slice(2, -2), `${keyPrefix}-b-${idx}`, depth + 1)}
           </strong>
         );
       } else if (token.startsWith("*") && token.endsWith("*")) {
         nodes.push(
           <em key={`${keyPrefix}-italic-${idx++}`} className="italic text-slate-200">
-            {renderInline(token.slice(1, -1), `${keyPrefix}-i-${idx}`)}
+            {renderInline(token.slice(1, -1), `${keyPrefix}-i-${idx}`, depth + 1)}
           </em>
         );
       } else if (/^\[ev-\d+\]$/.test(token)) {
@@ -112,10 +133,21 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
     };
   };
 
-  const lines = content.split("\n");
+  const lines = safeContent.split("\n");
 
-  const parseListBlock = (startIdx: number): { block: ParsedListBlock; nextIdx: number } => {
-    const first = getListLineInfo(lines[startIdx])!;
+  const isTableStart = (lineIdx: number): boolean =>
+    lineIdx + 1 < lines.length &&
+    lines[lineIdx].trim().startsWith("|") &&
+    /^\|[\s\-:|]+\|/.test(lines[lineIdx + 1].trim());
+
+  const parseListBlock = (
+    startIdx: number,
+    depth = 0
+  ): { block: ParsedListBlock; nextIdx: number } => {
+    const first = getListLineInfo(lines[startIdx]);
+    if (!first) {
+      return { block: { ordered: false, start: 1, items: [] }, nextIdx: startIdx + 1 };
+    }
     const baseIndent = first.indent;
     const ordered = first.ordered;
     const start = first.start;
@@ -123,11 +155,14 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
     let idx = startIdx;
 
     while (idx < lines.length) {
-      // Allow a single blank line inside a multi-item list if followed by another list item at >= baseIndent
       if (!lines[idx].trim()) {
         if (idx + 1 < lines.length) {
           const nextInfo = getListLineInfo(lines[idx + 1]);
-          if (nextInfo && nextInfo.indent >= baseIndent && (nextInfo.indent > baseIndent || nextInfo.ordered === ordered)) {
+          if (
+            nextInfo &&
+            nextInfo.indent >= baseIndent &&
+            (nextInfo.indent > baseIndent || nextInfo.ordered === ordered)
+          ) {
             idx++;
             continue;
           }
@@ -137,33 +172,46 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
 
       const info = getListLineInfo(lines[idx]);
       if (!info) break;
-
       if (info.indent < baseIndent) break;
 
-      if (info.indent === baseIndent) {
-        if (info.ordered !== ordered) break;
+      if (info.indent === baseIndent || depth >= MAX_LIST_DEPTH) {
+        if (info.indent === baseIndent && info.ordered !== ordered) break;
         items.push({ text: info.text, children: [] });
         idx++;
       } else {
-        // Nested list under the previous item
-        if (items.length === 0) break;
-        const nested = parseListBlock(idx);
+        if (items.length === 0) {
+          items.push({ text: info.text, children: [] });
+          idx++;
+          continue;
+        }
+        const nested = parseListBlock(idx, depth + 1);
         items[items.length - 1].children.push(nested.block);
-        idx = nested.nextIdx;
+        idx = Math.max(nested.nextIdx, idx + 1);
       }
     }
 
-    return { block: { ordered, start, items }, nextIdx: idx };
+    return {
+      block: { ordered, start, items },
+      nextIdx: Math.max(idx, startIdx + 1),
+    };
   };
 
-  const renderListBlock = (block: ParsedListBlock, keyPrefix: string, depth = 0): React.ReactNode => {
+  const renderListBlock = (
+    block: ParsedListBlock,
+    keyPrefix: string,
+    depth = 0
+  ): React.ReactNode => {
     const Tag = block.ordered ? "ol" : "ul";
     const listClass = block.ordered
       ? `list-decimal ${depth === 0 ? "pl-5 my-2.5" : "pl-5 mt-1.5"} space-y-1.5 text-slate-200`
       : `list-disc ${depth === 0 ? "pl-5 my-2.5" : "pl-5 mt-1.5"} space-y-1.5 text-slate-200`;
 
     return (
-      <Tag key={keyPrefix} start={block.ordered && block.start !== 1 ? block.start : undefined} className={listClass}>
+      <Tag
+        key={keyPrefix}
+        start={block.ordered && block.start !== 1 ? block.start : undefined}
+        className={listClass}
+      >
         {block.items.map((item, idx) => (
           <li key={`${keyPrefix}-li-${idx}`} className="leading-[1.7] pl-0.5">
             <span>{renderInline(item.text, `${keyPrefix}-li-${idx}`)}</span>
@@ -179,7 +227,8 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
   const blocks: React.ReactNode[] = [];
   let i = 0;
 
-  while (i < lines.length) {
+  while (i < lines.length && blocks.length < MAX_BLOCKS) {
+    const prevI = i;
     const line = lines[i];
     const trimmed = line.trim();
 
@@ -194,7 +243,7 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
       }
       blocks.push(
         <div
-          key={`codeblock-${i}`}
+          key={`codeblock-${prevI}`}
           className="rounded-lg border border-white/[0.08] bg-[#060908] overflow-hidden my-3"
         >
           {lang && (
@@ -219,7 +268,7 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
 
     // Horizontal divider
     if (/^(?:---|\*\*\*|___)\s*$/.test(trimmed)) {
-      blocks.push(<hr key={`hr-${i}`} className="my-3.5 border-white/[0.08]" />);
+      blocks.push(<hr key={`hr-${prevI}`} className="my-3.5 border-white/[0.08]" />);
       i++;
       continue;
     }
@@ -237,10 +286,10 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
         5: "text-xs font-semibold uppercase tracking-wider text-accent/90 mt-2 mb-1 font-sans",
         6: "text-xs font-semibold text-slate-300 mt-2 mb-1 font-sans",
       };
-      const HeadingTag = (`h${level}` as keyof React.JSX.IntrinsicElements);
+      const HeadingTag = `h${level}` as keyof React.JSX.IntrinsicElements;
       blocks.push(
-        <HeadingTag key={`h-${i}`} className={headingClasses[level]}>
-          {renderInline(text, `h-${i}`)}
+        <HeadingTag key={`h-${prevI}`} className={headingClasses[level]}>
+          {renderInline(text, `h-${prevI}`)}
         </HeadingTag>
       );
       i++;
@@ -256,17 +305,17 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
       }
       blocks.push(
         <blockquote
-          key={`bq-${i}`}
+          key={`bq-${prevI}`}
           className="border-l-2 border-accent/50 pl-3.5 my-2.5 text-slate-300 italic leading-[1.7]"
         >
-          {renderInline(quoteLines.join(" "), `bq-${i}`)}
+          {renderInline(quoteLines.join(" "), `bq-${prevI}`)}
         </blockquote>
       );
       continue;
     }
 
-    // Table
-    if (trimmed.startsWith("|") && i + 1 < lines.length && /^\|[\s\-:|]+\|/.test(lines[i + 1].trim())) {
+    // Markdown Table (only when separator row is present)
+    if (isTableStart(i)) {
       const parseRow = (r: string) =>
         r
           .trim()
@@ -284,13 +333,13 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
       }
 
       blocks.push(
-        <div key={`table-${i}`} className="overflow-x-auto my-3 rounded-lg border border-white/[0.08]">
+        <div key={`table-${prevI}`} className="overflow-x-auto my-3 rounded-lg border border-white/[0.08]">
           <table className="w-full text-left border-collapse text-xs sm:text-[13px]">
             <thead className="bg-white/[0.04] border-b border-white/[0.08]">
               <tr>
                 {headers.map((h, hIdx) => (
                   <th key={hIdx} className="px-3 py-2 font-semibold text-slate-200">
-                    {renderInline(h, `th-${i}-${hIdx}`)}
+                    {renderInline(h, `th-${prevI}-${hIdx}`)}
                   </th>
                 ))}
               </tr>
@@ -300,7 +349,7 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
                 <tr key={rIdx} className="hover:bg-white/[0.02]">
                   {row.map((cell, cIdx) => (
                     <td key={cIdx} className="px-3 py-2 text-slate-300">
-                      {renderInline(cell, `td-${i}-${rIdx}-${cIdx}`)}
+                      {renderInline(cell, `td-${prevI}-${rIdx}-${cIdx}`)}
                     </td>
                   ))}
                 </tr>
@@ -314,14 +363,15 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
 
     // Ordered or unordered list (including nested lists)
     if (getListLineInfo(line)) {
-      const { block, nextIdx } = parseListBlock(i);
-      blocks.push(renderListBlock(block, `list-${i}`, 0));
-      i = nextIdx;
+      const { block, nextIdx } = parseListBlock(i, 0);
+      blocks.push(renderListBlock(block, `list-${prevI}`, 0));
+      i = Math.max(nextIdx, prevI + 1);
       continue;
     }
 
-    // Paragraph (collect consecutive non-special lines)
-    const paraLines: string[] = [];
+    // Paragraph: collect consecutive non-special lines; always consume at least line[prevI]
+    const paraLines: string[] = [trimmed];
+    i++;
     while (
       i < lines.length &&
       lines[i].trim() !== "" &&
@@ -330,18 +380,23 @@ export function MarkdownContent({ content, onCitationClick }: MarkdownContentPro
       !/^(?:---|\*\*\*|___)\s*$/.test(lines[i].trim()) &&
       !lines[i].trim().startsWith(">") &&
       !getListLineInfo(lines[i]) &&
-      !lines[i].trim().startsWith("|")
+      !isTableStart(i)
     ) {
       paraLines.push(lines[i].trim());
       i++;
     }
 
     blocks.push(
-      <p key={`p-${i}`} className="leading-[1.7] text-slate-200 break-words">
-        {renderInline(paraLines.join(" "), `p-${i}`)}
+      <p key={`p-${prevI}`} className="leading-[1.7] text-slate-200 break-words">
+        {renderInline(paraLines.join(" "), `p-${prevI}`)}
       </p>
     );
+
+    // Guaranteed forward-progress invariant
+    if (i <= prevI) {
+      i = prevI + 1;
+    }
   }
 
   return <div className="space-y-2.5 text-[15px] leading-[1.7] font-sans">{blocks}</div>;
-}
+});

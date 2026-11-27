@@ -78,4 +78,52 @@ test.describe("Workspace Scrolling, Smart Auto-Scroll & Markdown Typography", ()
 
     await page.screenshot({ path: "../screenshots/scroll-polish/workspace-mobile-390.png" });
   });
+
+  test("Partial or malformed streamed Markdown tables and deep lists never freeze or OOM", async ({
+    page,
+  }) => {
+    await page.route("**/api/health", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ status: "healthy", ai_configured: true, ai_provider: "gemini", ai_model: "gemini-3.5-flash-lite", ai_mode: "live" }),
+      })
+    );
+    await page.route("**/api/sessions/init", (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ session_id: "sess-md-safe", token: "tok-md-safe" }) })
+    );
+    await page.route("**/api/scenarios/**", (r) =>
+      r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ status: "loaded", total_evidence: 1 }) })
+    );
+    await page.route("**/api/evidence**", (r) =>
+      r.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify([{ id: "ev-101", timestamp: "2026-11-27T00:00:00Z", service: "api", severity: "ERROR", message: "test", metadata: {}, raw_log: "test", is_anomaly: true, correlated_ids: [] }]),
+      })
+    );
+    await page.route("**/api/copilotkit", async (route) => {
+      const post = route.request().postData() || "";
+      if (post.includes("agent/run")) {
+        await route.fulfill({
+          status: 200,
+          contentType: "text/event-stream",
+          body:
+            'data: {"type":"RUN_STARTED"}\n\n' +
+            'data: {"type":"TEXT_MESSAGE_START"}\n\n' +
+            'data: {"type":"TEXT_MESSAGE_CONTENT","delta":"| Service | Status |\\n"}\n\n' +
+            'data: {"type":"TEXT_MESSAGE_CONTENT","delta":"1. Item one\\n          - Deeply indented\\n2. Item two\\n| trailing pipe without separator"}\n\n' +
+            'data: {"type":"RUN_FINISHED"}\n\n',
+        });
+      } else {
+        await route.continue();
+      }
+    });
+
+    await page.goto("/workspace?scenario=scenario-1");
+    await expect(page.locator("text=Live AI")).toBeVisible();
+    await page.fill('textarea[aria-label="Message input"]', "stream partial table");
+    await page.click('button[aria-label="Send message"]');
+    await expect(page.locator("text=trailing pipe without separator")).toBeVisible({ timeout: 5000 });
+  });
 });
