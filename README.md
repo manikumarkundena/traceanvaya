@@ -2,7 +2,10 @@
 
 **Agentic Incident Investigation & Replay Platform**
 
-TraceAnvaya is a full-stack AI incident investigation workspace built with **Next.js 15**, **CopilotKit**, **AG-UI**, and **Pydantic AI**. It helps software engineers and SREs investigate simulated software failures by correlating application logs, surfacing evidence-backed findings, replaying incident timelines, and reviewing remediation plans before approval.
+- **Live App (Vercel)**: [https://traceanvaya.vercel.app](https://traceanvaya.vercel.app) ([Open Workspace](https://traceanvaya.vercel.app/workspace))
+- **Live Backend API (Render)**: [https://traceanvaya.onrender.com](https://traceanvaya.onrender.com) ([Health Check](https://traceanvaya.onrender.com/api/health))
+
+TraceAnvaya is a full-stack AI incident investigation workspace built with **Next.js 15**, **CopilotKit**, **AG-UI**, and **Pydantic AI**. It helps software engineers and SREs investigate software failures by correlating application logs, surfacing evidence-backed findings, replaying incident timelines, and reviewing remediation plans before approval.
 
 ![TraceAnvaya Landing Page](screenshots/final/landing-1440x900-viewport.png)
 
@@ -128,23 +131,23 @@ Open [http://localhost:3000](http://localhost:3000) for the landing page, or [ht
 | **Backend** | `MAX_AGENT_BODY_BYTES` | No | No | `131072` (128 KB `/agent` body limit) |
 | **Backend** | `MAX_RAW_EVIDENCE_BYTES` | No | No | `2097152` (2 MB `/api/evidence/raw` body limit) |
 | **Backend** | `MAX_UPLOAD_BYTES` | No | No | `10485760` (10 MB `/api/evidence/upload` file limit) |
-| **Frontend** | `NEXT_PUBLIC_API_URL` | No | Yes | `http://127.0.0.1:8000` or `https://traceanvaya-api.onrender.com` |
-| **Frontend** | `BACKEND_AGENT_URL` | No | Yes | `http://127.0.0.1:8000/agent` or `https://traceanvaya-api.onrender.com/agent` |
+| **Frontend** | `NEXT_PUBLIC_API_URL` | No | Yes | `http://127.0.0.1:8000` or `https://traceanvaya.onrender.com` |
+| **Frontend** | `BACKEND_AGENT_URL` | No | Yes | `http://127.0.0.1:8000/agent` or `https://traceanvaya.onrender.com/agent` |
 
 Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `DATABASE_URL` in `NEXT_PUBLIC_*` variables.
 
 ---
 
-## Live AI, Local Ollama & Deterministic Demo Mode
+## Live AI, Optional Providers & Deterministic Demo Mode
 
 TraceAnvaya supports three server-configured inference modes (credentials and base URLs are never exposed to the browser):
 
-1. **Google Gemini (Default Hosted Provider)**:
-   Set `AI_PROVIDER=gemini`, `AI_MODEL=gemini-3.5-flash-lite`, and `GEMINI_API_KEY` in `.env`.
-2. **OpenAI (Optional)**:
-   Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and a tool-capable `OPENAI_MODEL` (e.g. `gpt-4o-mini`).
-3. **Local Ollama (Optional, Local-Only)**:
-   Install Ollama locally, pull a tool-capable model (`ollama pull llama3.1:8b`), start `ollama serve`, and set `AI_PROVIDER=ollama`, `OLLAMA_ENABLED=true`, `OLLAMA_BASE_URL=http://localhost:11434`, and `OLLAMA_MODEL=llama3.1:8b`.
+1. **Google Gemini (Default Hosted Provider — Live-Verified)**:
+   Set `AI_PROVIDER=gemini`, `AI_MODEL=gemini-3.5-flash-lite`, and `GEMINI_API_KEY` in `.env`. Live tool calling, AG-UI streaming, and bidirectional state sync have been verified end-to-end against Gemini.
+2. **OpenAI (Optional — Not Live-Verified)**:
+   Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and a tool-capable `OPENAI_MODEL` (e.g. `gpt-4o-mini`). Implemented via Pydantic AI and covered by unit tests, but **not live-verified** against OpenAI's API.
+3. **Local Ollama (Optional, Local-Only — Not Live-Verified)**:
+   Install Ollama locally, pull a tool-capable model (`ollama pull llama3.1:8b`), start `ollama serve`, and set `AI_PROVIDER=ollama`, `OLLAMA_ENABLED=true`, `OLLAMA_BASE_URL=http://localhost:11434`, and `OLLAMA_MODEL=llama3.1:8b`. Implemented via Pydantic AI and covered by unit tests, but **not live-verified** against a live Ollama instance.
    - *Docker*: When the backend runs inside Docker and Ollama runs on the host, set `OLLAMA_BASE_URL=http://host.docker.internal:11434`.
    - *Remote Hosting*: A remotely hosted backend (Render) cannot access Ollama on a user's `localhost`.
 4. **Deterministic Demo Mode**:
@@ -171,7 +174,7 @@ Click **New Investigation** in the workspace (or open `/workspace?new=1`) to cre
 cd backend
 .\.venv\Scripts\pytest -v
 ```
-Covers log parsing, secret redaction, anonymous session isolation, body/upload size limits, rate/quota guards, Pydantic AI tools (`TestModel`), human-gated remediation workflow, database persistence, and AG-UI event validation (`25 passed`).
+Covers log parsing, secret redaction, anonymous session isolation, body/upload size limits, rate/quota guards, Pydantic AI tools (`TestModel`), human-gated remediation workflow, database persistence, and AG-UI event validation (`26 passed`).
 
 ### Frontend Checks & Playwright E2E
 ```bash
@@ -196,11 +199,11 @@ TraceAnvaya is pre-configured for **Vercel** (frontend), **Render** (backend via
 
 ## Safety Boundaries & Known Limitations
 
-- **Simulated Remediation Only**: Approving a remediation plan records an operator decision in the audit trail (`APPROVED` / `REJECTED`) and never executes shell commands or modifies live infrastructure.
-- **Anonymous Session Isolation**: Each visitor initializes an isolated session (`POST /api/sessions/init`) backed by an HMAC-SHA256 signed token (`traceanvaya_sid` `HttpOnly` cookie + `X-TraceAnvaya-Session` header). Production startup (`ENVIRONMENT=production`) requires `SESSION_SECRET` (>= 32 chars).
-- **Persistence Boundary**: PostgreSQL (Neon + Alembic `2b17c4fcd53d_initial_schema.py`) stores the relational schema (`investigations`, `evidence_items`, `hypotheses`, `remediations`, `postmortem_reports`), while active workspace sessions, AG-UI `StateDeps` snapshots, and rate/quota counters are stored in-memory (`EvidenceStore`, `AIRateAndQuotaGuard`) with 24h TTL pruning.
+- **Simulated Remediation Only**: Approving or rejecting a remediation plan records an operator decision in the audit trail (`APPROVED` / `REJECTED`) and never executes shell commands or modifies live infrastructure.
+- **Hosting Cold Starts (Render Free Tier)**: The hosted backend on Render spins down after periods of inactivity; the first request after idle time may take 30–50+ seconds while the container wakes up.
+- **Free-Tier AI Rate Limits**: Live Gemini inference depends on the configured API tier and may return transient `429` (`Quota / Rate Limit Exceeded`) or `503` responses under burst traffic.
+- **Anonymous Session Isolation & Persistence Boundary**: Each visitor initializes an isolated session (`POST /api/sessions/init`) backed by an HMAC-SHA256 signed token (`traceanvaya_sid` `HttpOnly` cookie + `X-TraceAnvaya-Session` header). Production startup (`ENVIRONMENT=production`) requires `SESSION_SECRET` (>= 32 chars). PostgreSQL (Neon + Alembic `2b17c4fcd53d_initial_schema.py`) stores the relational schema, while active workspace sessions, `EvidenceStore`, AG-UI `StateDeps` snapshots, and rate/quota counters are stored in-memory (`24h` TTL) and reset on backend restarts or `SESSION_SECRET` rotation (the frontend recovers automatically by initializing a fresh session).
 - **Single-Process Rate & Quota Guards**: `/api/agent` enforces per-IP RPM (`30`), per-session hourly (`40`) and concurrency (`2`) limits, a global hourly safeguard (`500`), and a `128 KB` streaming body limit; `/api/evidence/raw` enforces `2 MB` and `/api/evidence/upload` enforces `10 MB`. Multi-worker deployments should place shared rate limiting in Redis or an API gateway.
-- **Free-Tier LLM Quotas**: Public live inference depends on the configured Gemini API tier and may return transient `429` or `503` provider responses under high load.
 
 ---
 

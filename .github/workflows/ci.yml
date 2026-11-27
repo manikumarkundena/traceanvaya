@@ -25,8 +25,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run Backend Pytest Suite
+      - name: Run Backend Pytest Suite (Deterministic, No Paid AI Keys)
         working-directory: ./backend
+        env:
+          ENVIRONMENT: development
+          GEMINI_API_KEY: ""
+          OPENAI_API_KEY: ""
         run: |
           pytest -v
 
@@ -47,6 +51,12 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
+      - name: TypeScript Check
+        working-directory: ./frontend
+        run: npx tsc --noEmit --incremental false
+
       - name: Build Next.js Production Bundle
         working-directory: ./frontend
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
         run: npm run build
