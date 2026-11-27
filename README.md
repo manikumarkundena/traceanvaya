@@ -171,7 +171,7 @@ Click **New Investigation** in the workspace (or open `/workspace?new=1`) to cre
 cd backend
 .\.venv\Scripts\pytest -v
 ```
-Covers log parsing, secret redaction, anonymous session isolation, body/upload size limits, rate/quota guards, Pydantic AI tools (`TestModel`), human-gated remediation workflow, database persistence, and AG-UI event validation (`20 passed`).
+Covers log parsing, secret redaction, anonymous session isolation, body/upload size limits, rate/quota guards, Pydantic AI tools (`TestModel`), human-gated remediation workflow, database persistence, and AG-UI event validation (`25 passed`).
 
 ### Frontend Checks & Playwright E2E
 ```bash

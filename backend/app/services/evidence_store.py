@@ -84,12 +84,25 @@ class EvidenceStore:
     def remove_source_evidence(self, session_id: str, source_label: str) -> List[EvidenceItem]:
         self._touch(session_id)
         existing = self._evidence.get(session_id, [])
+        removed_ids = {
+            e.id for e in existing if (e.source_label or e.service).lower() == source_label.lower()
+        }
         remaining = [
             e for e in existing if (e.source_label or e.service).lower() != source_label.lower()
         ]
         self._evidence[session_id] = LogParser.correlate_evidence(remaining)
         state = self.get_or_create_state(session_id)
         state.source_labels = sorted({e.source_label or e.service for e in self._evidence[session_id]})
+        if removed_ids:
+            state.selected_evidence_ids = [
+                eid for eid in state.selected_evidence_ids if eid not in removed_ids
+            ]
+            state.findings = [
+                f for f in state.findings if not any(rid in f for rid in removed_ids)
+            ]
+            state.hypotheses = [
+                h for h in state.hypotheses if not any(rid in h for rid in removed_ids)
+            ]
         self.update_state(session_id, state)
         return self._evidence[session_id]
 

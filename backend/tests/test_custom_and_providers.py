@@ -159,3 +159,71 @@ async def test_unconfigured_provider_switch_rejected(monkeypatch):
             headers=headers,
         )
         assert res.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_unseen_dataset_source_removal_and_provider_session_isolation(monkeypatch):
+    monkeypatch.setattr(settings, "GEMINI_API_KEY", "test-gemini-key")
+    monkeypatch.setattr(settings, "OPENAI_API_KEY", "test-openai-key")
+    monkeypatch.setattr(settings, "AI_PROVIDER", "gemini")
+
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client_a, \
+               AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client_b:
+        sess_a = (await client_a.post("/api/sessions/init")).json()
+        sess_b = (await client_b.post("/api/sessions/init")).json()
+        headers_a = {"X-TraceAnvaya-Session": sess_a["token"]}
+        headers_b = {"X-TraceAnvaya-Session": sess_b["token"]}
+
+        # Provider switch in Session A must not mutate Session B
+        sw_a = await client_a.post("/api/investigation/provider", json={"provider": "openai"}, headers=headers_a)
+        assert sw_a.status_code == 200
+        assert sw_a.json()["active_provider"] == "openai"
+
+        prov_b = (await client_b.get("/api/providers", headers=headers_b)).json()
+        assert prov_b["active_provider"] == "gemini"
+
+        # Unseen dataset: Auth + Cache + Worker with trace_id=tr-88412
+        await client_a.post(
+            "/api/investigations/custom",
+            json={"incident_title": "Session Cache Stampede", "affected_service": "auth-edge", "severity": "HIGH"},
+            headers=headers_a,
+        )
+        await client_a.post(
+            "/api/evidence/raw",
+            json={
+                "session_id": sess_a["session_id"],
+                "source_label": "Authentication service",
+                "raw_content": "2026-11-27T12:00:02Z ERROR [auth-edge] trace_id=tr-88412 Bearer secret_token_value_123456 rejected",
+            },
+            headers=headers_a,
+        )
+        await client_a.post(
+            "/api/evidence/raw",
+            json={
+                "session_id": sess_a["session_id"],
+                "source_label": "Infrastructure",
+                "raw_content": "2026-11-27T12:00:01Z CRITICAL [redis-cache] trace_id=tr-88412 Connection pool exhausted password=cachepassxyz",
+            },
+            headers=headers_a,
+        )
+
+        # Record finding & hypothesis citing ev-001 (Authentication service)
+        state_a = (await client_a.get(f"/api/investigation/state?session_id={sess_a['session_id']}", headers=headers_a)).json()
+        state_a["selected_evidence_ids"] = ["ev-001", "ev-002"]
+        state_a["findings"] = ["Token rejection observed in [ev-001]", "Redis pool exhausted in [ev-002]"]
+        state_a["hypotheses"] = ["Auth token storm triggered by [ev-001]"]
+        await client_a.put(f"/api/investigation/state?session_id={sess_a['session_id']}", json=state_a, headers=headers_a)
+
+        # Remove Authentication service -> ev-001 references must be pruned cleanly
+        del_res = await client_a.delete(
+            f"/api/evidence/source/Authentication%20service?session_id={sess_a['session_id']}",
+            headers=headers_a,
+        )
+        assert del_res.status_code == 200
+        assert del_res.json()["remaining_evidence"] == 1
+
+        updated_a = (await client_a.get(f"/api/investigation/state?session_id={sess_a['session_id']}", headers=headers_a)).json()
+        assert "ev-001" not in updated_a["selected_evidence_ids"]
+        assert all("ev-001" not in f for f in updated_a["findings"])
+        assert all("ev-001" not in h for h in updated_a["hypotheses"])
+        assert any("ev-002" in f for f in updated_a["findings"])

@@ -37,9 +37,14 @@ A Render Blueprint is provided at the repository root in `render.yaml`.
 | `SESSION_SECRET` | HMAC signing key for anonymous sessions (>= 32 chars, required in prod) | Auto-generated in `render.yaml` |
 | `DATABASE_URL` | Neon PostgreSQL URL | `postgresql://user:pass@ep-xyz.neon.tech/traceanvaya?sslmode=require` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins | `https://traceanvaya.vercel.app` |
-| `AI_PROVIDER` | LLM provider (`gemini` or `openai`) | `gemini` |
-| `AI_MODEL` | Model identifier | `gemini-3.5-flash-lite` |
+| `AI_PROVIDER` | Default LLM provider (`gemini`, `openai`, or `ollama`) | `gemini` |
+| `AI_MODEL` | Default Gemini model identifier | `gemini-3.5-flash-lite` |
 | `GEMINI_API_KEY` | Google AI Studio API key (omit for Demo Mode) | `AIza...` |
+| `OPENAI_API_KEY` | Optional OpenAI API key | `sk-...` |
+| `OPENAI_MODEL` | Optional OpenAI tool-capable model | `gpt-4o-mini` |
+| `OLLAMA_ENABLED` | Enable local Ollama provider (`false` in hosted prod) | `false` |
+| `OLLAMA_BASE_URL` | Local Ollama URL (`http://host.docker.internal:11434` in Docker) | `http://localhost:11434` |
+| `OLLAMA_MODEL` | Local tool-capable Ollama model | `llama3.1:8b` |
 | `RATE_LIMIT_PER_MINUTE` | Per-IP `/agent` request limit | `30` |
 | `SESSION_AI_LIMIT_PER_HOUR` | Per-session hourly live AI turn cap | `40` |
 | `MAX_CONCURRENT_AI_PER_SESSION` | Max concurrent live AI requests per session | `2` |

@@ -35,6 +35,11 @@ services:
       - AI_PROVIDER=gemini
       - AI_MODEL=gemini-3.5-flash-lite
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=gpt-4o-mini
+      - OLLAMA_ENABLED=${OLLAMA_ENABLED:-false}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://host.docker.internal:11434}
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-llama3.1:8b}
       - SESSION_SECRET=${SESSION_SECRET:-local-docker-compose-session-secret-change-in-prod}
       - RATE_LIMIT_PER_MINUTE=30
       - SESSION_AI_LIMIT_PER_HOUR=40
