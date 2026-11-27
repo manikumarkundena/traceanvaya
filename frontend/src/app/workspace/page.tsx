@@ -106,7 +106,7 @@ function WorkspaceContent() {
     const checkHealth = async () => {
       try {
         const controller = new AbortController();
-        const tid = setTimeout(() => controller.abort(), 1500);
+        const tid = setTimeout(() => controller.abort(), 8000);
         const res = await fetch(`${BACKEND_URL}/api/health`, {
           signal: controller.signal,
         });
@@ -222,7 +222,8 @@ function WorkspaceContent() {
           id: `msg-init-${Date.now()}`,
           role: "assistant",
           content:
-            "Custom workspace ready with **0** preloaded demo logs.\n\nChoose **New Investigation** in the header to upload or paste multiple log sources, or select a sample incident from the dropdown.",
+            "**Custom Investigation Mode** — Started with **0** evidence records (no synthetic scenario logs).\n\n" +
+            "Upload or paste your own application logs using **New Investigation** in the header or the paperclip button below before asking the investigator to analyze.",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
@@ -230,12 +231,14 @@ function WorkspaceContent() {
     }
 
     const preset = SCENARIO_PRESETS[scenarioKey] || SCENARIO_PRESETS["scenario-1"];
-    let loadedEvidence: EvidenceItem[] = preset.evidence;
+    let loadedEvidence: EvidenceItem[] = [];
+    let backendSynced = false;
+    let syncErrorDetail = "";
 
     try {
       const { sid, token } = await ensureSession();
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 1200);
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
 
       // Load scenario into backend store if available
       const loadRes = await fetch(
@@ -246,7 +249,10 @@ function WorkspaceContent() {
           headers: authHeaders(token),
           signal: controller.signal,
         }
-      ).catch(() => null);
+      ).catch((err) => {
+        syncErrorDetail = err?.message || "Network error";
+        return null;
+      });
 
       if (loadRes && loadRes.ok) {
         setBackendOnline(true);
@@ -262,12 +268,34 @@ function WorkspaceContent() {
           const evData = await evRes.json();
           if (Array.isArray(evData) && evData.length > 0) {
             loadedEvidence = evData;
+            backendSynced = true;
           }
         }
+      } else if (loadRes) {
+        const errBody = await loadRes.json().catch(() => ({}));
+        syncErrorDetail = errBody?.detail || `HTTP ${loadRes.status}`;
       }
       clearTimeout(timeoutId);
-    } catch {
-      // Use preset synthetic telemetry offline
+    } catch (err: any) {
+      syncErrorDetail = err?.message || "Connection failed";
+    }
+
+    if (!backendSynced) {
+      // Only use local offline preview when backend is unreachable/demo; never claim backend ingestion succeeded
+      loadedEvidence = BACKEND_URL ? [] : preset.evidence;
+      setEvidenceList(loadedEvidence);
+      setSelectedEvidence(loadedEvidence[0] || null);
+      setMessages([
+        {
+          id: `msg-init-${Date.now()}`,
+          role: "system",
+          content: BACKEND_URL
+            ? `**Backend Telemetry Sync Failed**: Could not load **${preset.title}** into the backend evidence store (${syncErrorDetail || "timeout"}). Click **Reset** to retry or switch to **Custom Investigation** to upload logs.`
+            : `**Example Scenario (Offline Demo Mode)**: Loaded local synthetic preview for **${preset.title}** on \`${preset.service}\` (${loadedEvidence.length} log events).`,
+          timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+        },
+      ]);
+      return;
     }
 
     setEvidenceList(loadedEvidence);
@@ -277,7 +305,7 @@ function WorkspaceContent() {
         id: `msg-init-${Date.now()}`,
         role: "assistant",
         content:
-          `Loaded telemetry for **${preset.title}** on \`${preset.service}\` (${loadedEvidence.length} log events).\n\n` +
+          `**Example Scenario (Synthetic Telemetry)** — Loaded **${preset.title}** on \`${preset.service}\` (**${loadedEvidence.length}** log events synced with backend).\n\n` +
           `Ask me to analyze the error spike, trace the root cause, inspect supporting evidence, or propose a remediation plan.`,
         timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
       },

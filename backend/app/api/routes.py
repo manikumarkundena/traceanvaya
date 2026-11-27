@@ -73,9 +73,12 @@ def _resolve_authorized_session(
         )
     return verified_sid
 
-# Locate scenarios directory relative to project root
+# Locate scenarios directory: prefer bundled backend/app/scenarios_data for Render/Docker rootDir=backend,
+# falling back to repo-root scenarios/ for local development.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-SCENARIOS_DIR = os.path.join(os.path.dirname(BASE_DIR), "scenarios")
+_BUNDLED_SCENARIOS_DIR = os.path.join(BASE_DIR, "app", "scenarios_data")
+_REPO_SCENARIOS_DIR = os.path.join(os.path.dirname(BASE_DIR), "scenarios")
+SCENARIOS_DIR = _BUNDLED_SCENARIOS_DIR if os.path.isdir(_BUNDLED_SCENARIOS_DIR) else _REPO_SCENARIOS_DIR
 
 
 @router.get("/health")

@@ -96,7 +96,7 @@ test.describe("TraceAnvaya Platform Verification", () => {
     await expect(page.locator("button:visible:has-text('Timeline')").first()).toBeVisible();
 
     // Verify agent greeting in chat with rendered Markdown (no raw **)
-    await expect(page.locator("text=Loaded telemetry for")).toBeVisible();
+    await expect(page.locator("text=Example Scenario (Synthetic Telemetry)")).toBeVisible();
     await expect(page.locator("text=**Database Connection Pool Exhaustion**")).not.toBeVisible();
 
     const runtime422Errors = consoleErrors.filter((e) => e.includes("422"));

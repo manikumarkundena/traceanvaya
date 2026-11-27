@@ -227,3 +227,29 @@ async def test_unseen_dataset_source_removal_and_provider_session_isolation(monk
         assert all("ev-001" not in f for f in updated_a["findings"])
         assert all("ev-001" not in h for h in updated_a["hypotheses"])
         assert any("ev-002" in f for f in updated_a["findings"])
+
+
+@pytest.mark.asyncio
+async def test_all_three_bundled_scenarios_load_and_query():
+    from app.api.routes import SCENARIOS_DIR
+    import os
+
+    assert os.path.isdir(SCENARIOS_DIR)
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        sc_list = (await client.get("/api/scenarios")).json()
+        assert len(sc_list) == 3
+
+        sess = (await client.post("/api/sessions/init")).json()
+        sid = sess["session_id"]
+        headers = {"X-TraceAnvaya-Session": sess["token"]}
+
+        for sc_id in ("scenario-1", "scenario-2", "scenario-3"):
+            res = await client.post(
+                f"/api/scenarios/{sc_id}/load?session_id={sid}",
+                headers=headers,
+            )
+            assert res.status_code == 200
+            data = res.json()
+            assert data["total_evidence"] == 14
+            ev = (await client.get(f"/api/evidence?session_id={sid}&limit=100", headers=headers)).json()
+            assert len(ev) == 14
