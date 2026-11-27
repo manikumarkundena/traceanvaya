@@ -41,12 +41,12 @@ export function CinematicBackground() {
 
       {/* 2. Subtle Technical Coordinate Grid (Fading softly around edges) */}
       <div
-        className="absolute inset-0 tech-grid opacity-25"
+        className="absolute inset-0 tech-grid opacity-30"
         style={{
           maskImage:
-            "radial-gradient(ellipse 85% 70% at 60% 22%, black 15%, transparent 82%)",
+            "radial-gradient(ellipse 85% 70% at 60% 22%, black 18%, transparent 82%)",
           WebkitMaskImage:
-            "radial-gradient(ellipse 85% 70% at 60% 22%, black 15%, transparent 82%)",
+            "radial-gradient(ellipse 85% 70% at 60% 22%, black 18%, transparent 82%)",
         }}
       />
 
@@ -142,10 +142,10 @@ export function CinematicBackground() {
 
         {/* Subtle Top-Edge Source Horizon Glow (ties curtains together naturally) */}
         <div
-          className="absolute -top-28 right-[5%] w-[720px] h-[280px] pointer-events-none"
+          className="absolute -top-28 right-[4%] w-[780px] h-[320px] pointer-events-none"
           style={{
             background:
-              "radial-gradient(ellipse 65% 55% at 60% 20%, rgba(52, 211, 153, 0.22) 0%, rgba(16, 185, 129, 0.08) 45%, transparent 78%)",
+              "radial-gradient(ellipse 68% 58% at 60% 22%, rgba(52, 211, 153, 0.28) 0%, rgba(16, 185, 129, 0.12) 45%, transparent 78%)",
             filter: "blur(32px)",
           }}
         />

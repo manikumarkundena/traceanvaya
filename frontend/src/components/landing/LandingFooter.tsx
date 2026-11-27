@@ -32,11 +32,11 @@ export function LandingFooter() {
           <div className="flex justify-center relative z-10">
             <Link
               href="/workspace"
-              className="flex items-center gap-2.5 px-8 py-3.5 rounded-lg text-sm font-semibold bg-accent text-[#060908] hover:bg-accent/90 active:scale-[0.98] transition-all duration-200 font-sans"
+              className="group flex items-center gap-2.5 px-8 py-3.5 rounded-lg text-sm font-semibold bg-accent text-[#060908] hover:brightness-105 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-200 font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
             >
               <Terminal className="w-4 h-4" />
               <span>Open TraceAnvaya Workspace</span>
-              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px]" />
             </Link>
           </div>
         </GlassCard>

@@ -8,10 +8,11 @@ import { WorkflowWalkthrough } from "@/components/landing/WorkflowWalkthrough";
 import { ArchitectureDiagram } from "@/components/landing/ArchitectureDiagram";
 import { ScenarioShowcase } from "@/components/landing/ScenarioShowcase";
 import { LandingFooter } from "@/components/landing/LandingFooter";
+import { BackToTop } from "@/components/navigation/BackToTop";
 
 export default function LandingPage() {
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground relative selection:bg-accent/20 selection:text-accent overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-background text-foreground relative selection:bg-accent/20 selection:text-accent overflow-x-clip">
       {/* Cinematic Animated Background System */}
       <CinematicBackground />
 
@@ -28,6 +29,8 @@ export default function LandingPage() {
         <ScenarioShowcase />
         <LandingFooter />
       </main>
+
+      <BackToTop />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Check, Copy, FileText, X } from "lucide-react";
+import { Check, Copy, Download, FileText, X } from "lucide-react";
 import { EASE_OUT_EXPO } from "@/lib/motion";
 
 interface PostmortemModalProps {
@@ -48,15 +48,34 @@ export function PostmortemModal({
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={onCopy}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium bg-surface border border-white/[0.08] hover:border-accent/40 text-foreground transition-all active:scale-95"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium bg-surface border border-white/[0.08] hover:border-accent/40 text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   {isCopied ? <Check className="w-3.5 h-3.5 text-success" /> : <Copy className="w-3.5 h-3.5 text-accent" />}
                   <span>{isCopied ? "Copied" : "Copy Markdown"}</span>
                 </button>
                 <button
+                  type="button"
+                  onClick={() => {
+                    const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a");
+                    a.href = url;
+                    a.download = "traceanvaya-postmortem.md";
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono font-medium bg-surface border border-white/[0.08] hover:border-accent/40 text-foreground transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+                >
+                  <Download className="w-3.5 h-3.5 text-accent" />
+                  <span>Export .md</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label="Close Postmortem Studio"
                   onClick={onClose}
-                  className="p-1.5 rounded-md hover:bg-surface text-muted hover:text-foreground transition-colors"
+                  className="p-1.5 rounded-md hover:bg-surface text-muted hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
                 >
                   <X className="w-4 h-4" />
                 </button>

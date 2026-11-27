@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     # Public demo & request safeguards
     RATE_LIMIT_PER_MINUTE: int = 30
     MAX_AGENT_BODY_BYTES: int = 131072  # 128 KB
+    MAX_RAW_EVIDENCE_BYTES: int = 2097152  # 2 MB
+    MAX_UPLOAD_BYTES: int = 10485760  # 10 MB
+    SESSION_AI_LIMIT_PER_HOUR: int = 40
+    MAX_CONCURRENT_AI_PER_SESSION: int = 2
+    GLOBAL_AI_LIMIT_PER_HOUR: int = 500
+    SESSION_SECRET: str = ""
+    SESSION_TTL_SECONDS: int = 86400  # 24 hours
+    TRUST_PROXY_HEADERS: bool = True
 
     # Database
     DATABASE_URL: str = "sqlite+aiosqlite:///./traceanvaya.db"

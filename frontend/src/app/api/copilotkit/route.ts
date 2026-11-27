@@ -16,24 +16,35 @@ const backendAgentUrl =
     ? `${process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "")}/agent`
     : "http://127.0.0.1:8000/agent");
 
-const runtime = new CopilotRuntime({
-  agents: {
-    incidentAgent: new HttpAgent({
-      url: backendAgentUrl,
-    }),
-  },
-});
+function createHandler(req: NextRequest) {
+  const sessionToken = req.headers.get("x-traceanvaya-session") || "";
+  const cookieHeader = req.headers.get("cookie") || "";
+  const forwardHeaders: Record<string, string> = {};
+  if (sessionToken) forwardHeaders["x-traceanvaya-session"] = sessionToken;
+  if (cookieHeader) forwardHeaders["cookie"] = cookieHeader;
 
-const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
-  runtime,
-  serviceAdapter: new EmptyAdapter(),
-  endpoint: "/api/copilotkit",
-});
+  const runtime = new CopilotRuntime({
+    agents: {
+      incidentAgent: new HttpAgent({
+        url: backendAgentUrl,
+        headers: forwardHeaders,
+      }),
+    },
+  });
+
+  const { handleRequest } = copilotRuntimeNextJSAppRouterEndpoint({
+    runtime,
+    serviceAdapter: new EmptyAdapter(),
+    endpoint: "/api/copilotkit",
+  });
+
+  return handleRequest(req);
+}
 
 export const POST = async (req: NextRequest) => {
-  return handleRequest(req);
+  return createHandler(req);
 };
 
 export const GET = async (req: NextRequest) => {
-  return handleRequest(req);
+  return createHandler(req);
 };

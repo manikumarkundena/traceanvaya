@@ -52,15 +52,15 @@ export function HeroSection() {
         <div className="flex flex-wrap items-center gap-3.5 w-full sm:w-auto">
           <Link
             href="/workspace"
-            className="group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-accent text-[#050807] hover:bg-accent/95 active:scale-[0.98] transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45),0_4px_16px_-4px_rgba(94,234,212,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-accent text-[#050807] hover:brightness-105 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45),0_4px_16px_-4px_rgba(94,234,212,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <span>Start investigating</span>
-            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-0.5" />
+            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px]" />
           </Link>
 
           <Link
             href="/workspace?scenario=scenario-1"
-            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-white/[0.03] backdrop-blur-sm border border-white/[0.14] text-foreground hover:bg-white/[0.08] hover:border-white/[0.24] active:scale-[0.98] transition-all shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+            className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-white/[0.03] backdrop-blur-sm border border-white/[0.14] text-foreground hover:bg-white/[0.07] hover:border-accent/35 active:scale-[0.98] transition-all duration-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.06)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
           >
             <span>Explore demo</span>
           </Link>

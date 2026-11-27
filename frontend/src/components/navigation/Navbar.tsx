@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { Logo } from "@/components/brand/Logo";
 import { ArrowUpRight, Menu, X, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [activeSection, setActiveSection] = useState<string>("");
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     const onScroll = () => {
@@ -88,14 +89,19 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
                 <a
                   key={item.id}
                   href={item.href}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "py-1.5 transition-colors duration-200 relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-sm",
-                    isActive ? "text-white font-semibold" : "hover:text-white"
+                    isActive ? "text-white font-semibold" : "text-slate-300 hover:text-white"
                   )}
                 >
                   {item.label}
                   {isActive && (
-                    <span className="absolute -bottom-0.5 inset-x-0 h-0.5 bg-accent/85 rounded-full transition-all duration-200" />
+                    <motion.span
+                      layoutId={prefersReducedMotion ? undefined : "activeNavIndicator"}
+                      transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                      className="absolute -bottom-0.5 inset-x-0 h-0.5 bg-accent/90 rounded-full"
+                    />
                   )}
                 </a>
               );
@@ -114,11 +120,11 @@ export const Navbar: React.FC<NavbarProps> = ({ mode = "landing" }) => {
         <div className="flex items-center gap-3">
           <Link
             href="/workspace"
-            className="inline-flex items-center justify-center gap-2 h-10 sm:h-[42px] px-4 sm:px-5 rounded-xl text-sm font-semibold bg-accent text-[#050807] hover:bg-accent/90 active:scale-[0.98] transition-all duration-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.4)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            className="group inline-flex items-center justify-center gap-1.5 h-10 sm:h-[42px] px-4 sm:px-5 rounded-xl text-sm font-semibold bg-accent text-[#050807] hover:brightness-105 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45),0_4px_14px_-4px_rgba(94,234,212,0.3)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
-            <span className="hidden sm:inline">Launch </span>
+            <span className="hidden sm:inline">Launch</span>
             <span>Workspace</span>
-            <ArrowUpRight className="w-4 h-4" />
+            <ArrowUpRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[2px] group-hover:-translate-y-[2px]" />
           </Link>
 
           {mode === "landing" && (

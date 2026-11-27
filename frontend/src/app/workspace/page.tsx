@@ -19,9 +19,66 @@ const BACKEND_URL =
 
 function WorkspaceContent() {
   const [currentScenario, setCurrentScenario] = useState<string>("scenario-1");
-  const sessionId = `session-${currentScenario}`;
+  const [sessionId, setSessionId] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      const existing = window.sessionStorage.getItem("traceanvaya_session_id");
+      if (existing) return existing;
+    }
+    return `sess-local-${Math.random().toString(36).slice(2, 10)}`;
+  });
+  const sessionTokenRef = useRef<string>(
+    typeof window !== "undefined"
+      ? window.sessionStorage.getItem("traceanvaya_session_token") || ""
+      : ""
+  );
   const [backendOnline, setBackendOnline] = useState<boolean>(false);
   const [aiMode, setAiMode] = useState<"live" | "demo">("demo");
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => {
+      setToastMessage((curr) => (curr === msg ? null : curr));
+    }, 2600);
+  };
+
+  const ensureSession = async (): Promise<{ sid: string; token: string }> => {
+    if (sessionTokenRef.current && sessionId && !sessionId.startsWith("sess-local-")) {
+      return { sid: sessionId, token: sessionTokenRef.current };
+    }
+    if (!BACKEND_URL) {
+      return { sid: sessionId, token: "" };
+    }
+    try {
+      const res = await fetch(`${BACKEND_URL}/api/sessions/init`, {
+        method: "POST",
+        credentials: "include",
+        headers: sessionTokenRef.current
+          ? { "X-TraceAnvaya-Session": sessionTokenRef.current }
+          : undefined,
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.session_id && data.token) {
+          sessionTokenRef.current = data.token;
+          setSessionId(data.session_id);
+          if (typeof window !== "undefined") {
+            window.sessionStorage.setItem("traceanvaya_session_id", data.session_id);
+            window.sessionStorage.setItem("traceanvaya_session_token", data.token);
+          }
+          return { sid: data.session_id, token: data.token };
+        }
+      }
+    } catch {
+      // Offline / Demo Mode fallback
+    }
+    return { sid: sessionId, token: sessionTokenRef.current };
+  };
+
+  const authHeaders = (token: string, extra?: Record<string, string>): Record<string, string> => ({
+    ...(extra || {}),
+    ...(token ? { "X-TraceAnvaya-Session": token } : {}),
+  });
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -144,20 +201,30 @@ function WorkspaceContent() {
     let loadedEvidence: EvidenceItem[] = preset.evidence;
 
     try {
+      const { sid, token } = await ensureSession();
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 1200);
 
       // Load scenario into backend store if available
       const loadRes = await fetch(
-        `${BACKEND_URL}/api/scenarios/${scenarioKey}/load?session_id=${sessionId}`,
-        { method: "POST", signal: controller.signal }
+        `${BACKEND_URL}/api/scenarios/${scenarioKey}/load?session_id=${sid}`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: authHeaders(token),
+          signal: controller.signal,
+        }
       ).catch(() => null);
 
       if (loadRes && loadRes.ok) {
         setBackendOnline(true);
         const evRes = await fetch(
-          `${BACKEND_URL}/api/evidence?session_id=${sessionId}&limit=100`,
-          { signal: controller.signal }
+          `${BACKEND_URL}/api/evidence?session_id=${sid}&limit=100`,
+          {
+            credentials: "include",
+            headers: authHeaders(token),
+            signal: controller.signal,
+          }
         ).catch(() => null);
         if (evRes && evRes.ok) {
           const evData = await evRes.json();
@@ -191,16 +258,19 @@ function WorkspaceContent() {
     setCanvasState(nextState);
 
     try {
+      const { sid, token } = await ensureSession();
       const res = await fetch(
-        `${BACKEND_URL}/api/investigation/state?session_id=${sessionId}`,
+        `${BACKEND_URL}/api/investigation/state?session_id=${sid}`,
         {
           method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(nextState),
+          credentials: "include",
+          headers: authHeaders(token, { "Content-Type": "application/json" }),
+          body: JSON.stringify({ ...nextState, session_id: sid }),
         }
       );
       if (res.ok) {
         setStateSyncSuccess(true);
+        showToast("Investigation state saved");
         setTimeout(() => setStateSyncSuccess(false), 2200);
       }
     } catch {
@@ -225,9 +295,14 @@ function WorkspaceContent() {
   // Remediation Approval / Rejection (Simulated environment)
   const handleRemediationDecision = async (decision: "APPROVED" | "REJECTED") => {
     try {
+      const { sid, token } = await ensureSession();
       await fetch(
-        `${BACKEND_URL}/api/investigation/remediation/rem-1/decision?decision=${decision}&session_id=${sessionId}&operator=Operator`,
-        { method: "POST" }
+        `${BACKEND_URL}/api/investigation/remediation/rem-1/decision?decision=${decision}&session_id=${sid}&operator=Operator`,
+        {
+          method: "POST",
+          credentials: "include",
+          headers: authHeaders(token),
+        }
       );
     } catch {
       // Record locally when offline
@@ -263,13 +338,23 @@ function WorkspaceContent() {
 
       let uploadedItems: EvidenceItem[] | null = null;
       if (backendOnline) {
+        const { sid, token } = await ensureSession();
         const res = await fetch(
-          `${BACKEND_URL}/api/evidence/upload?session_id=${sessionId}`,
-          { method: "POST", body: formData }
+          `${BACKEND_URL}/api/evidence/upload?session_id=${sid}`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: authHeaders(token),
+            body: formData,
+          }
         );
         if (res.ok) {
           const evRes = await fetch(
-            `${BACKEND_URL}/api/evidence?session_id=${sessionId}&limit=100`
+            `${BACKEND_URL}/api/evidence?session_id=${sid}&limit=100`,
+            {
+              credentials: "include",
+              headers: authHeaders(token),
+            }
           );
           if (evRes.ok) {
             uploadedItems = await evRes.json();
@@ -315,6 +400,7 @@ function WorkspaceContent() {
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
+      showToast(`Imported ${uploadedItems?.length || 0} log entries`);
     } catch {
       setMessages((prev) => [
         ...prev,
@@ -369,20 +455,22 @@ function WorkspaceContent() {
     // Live AI Mode: route through CopilotKit Runtime (/api/copilotkit -> HttpAgent -> FastAPI /agent)
     if (backendOnline && aiMode === "live") {
       try {
+        const { sid, token } = await ensureSession();
         const res = await fetch("/api/copilotkit", {
           method: "POST",
-          headers: {
+          credentials: "include",
+          headers: authHeaders(token, {
             "Content-Type": "application/json",
             Accept: "text/event-stream",
-          },
+          }),
           signal: controller.signal,
           body: JSON.stringify({
             method: "agent/run",
             params: { agentId: "incidentAgent" },
             body: {
-              threadId: sessionId,
+              threadId: sid,
               runId: `run-${Date.now()}`,
-              state: canvasState,
+              state: { ...canvasState, session_id: sid },
               messages: [
                 ...messages.map((m) => ({
                   id: m.id,
@@ -634,8 +722,13 @@ function WorkspaceContent() {
   const handleOpenPostmortem = async () => {
     try {
       if (backendOnline) {
+        const { sid, token } = await ensureSession();
         const res = await fetch(
-          `${BACKEND_URL}/api/investigation/postmortem?session_id=${sessionId}`
+          `${BACKEND_URL}/api/investigation/postmortem?session_id=${sid}`,
+          {
+            credentials: "include",
+            headers: authHeaders(token),
+          }
         );
         if (res.ok) {
           const data = await res.json();
@@ -686,28 +779,30 @@ function WorkspaceContent() {
   const handleCopyPostmortem = () => {
     navigator.clipboard.writeText(postmortemContent);
     setIsCopied(true);
+    showToast("Postmortem copied to clipboard");
     setTimeout(() => setIsCopied(false), 2000);
   };
 
   // Reset current scenario investigation cleanly
   const handleResetInvestigation = async () => {
     handleCancelGeneration();
-    await loadScenarioTelemetry(currentScenario);
     if (BACKEND_URL) {
-      const freshState = createInitialCanvasState(sessionId, currentScenario);
       try {
+        const { sid, token } = await ensureSession();
         await fetch(
-          `${BACKEND_URL}/api/investigation/state?session_id=${sessionId}`,
+          `${BACKEND_URL}/api/sessions/reset?session_id=${sid}`,
           {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(freshState),
+            method: "POST",
+            credentials: "include",
+            headers: authHeaders(token),
           }
         );
       } catch {
         // Ignore offline reset
       }
     }
+    await loadScenarioTelemetry(currentScenario);
+    showToast("Investigation reset");
   };
 
   return (
@@ -863,6 +958,17 @@ function WorkspaceContent() {
         onCopy={handleCopyPostmortem}
         onClose={() => setShowPostmortem(false)}
       />
+
+      {/* Restrained Action Toast */}
+      {toastMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="fixed bottom-5 right-5 z-50 px-3.5 py-2 rounded-lg bg-[#0D1411]/95 border border-accent/30 text-xs font-medium text-foreground shadow-lg backdrop-blur-md"
+        >
+          {toastMessage}
+        </div>
+      )}
     </div>
   );
 }

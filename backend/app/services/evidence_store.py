@@ -1,6 +1,8 @@
 import json
 import os
+import time
 from typing import Dict, List, Optional
+from app.core.config import settings
 from app.schemas.incident import EvidenceItem, InvestigationState, PostmortemReport
 from app.services.log_parser import LogParser
 
@@ -11,8 +13,30 @@ class EvidenceStore:
         self._evidence: Dict[str, List[EvidenceItem]] = {}
         self._states: Dict[str, InvestigationState] = {}
         self._postmortems: Dict[str, PostmortemReport] = {}
+        self._last_accessed: Dict[str, float] = {}
+
+    def _touch(self, session_id: str) -> None:
+        now = time.time()
+        self._last_accessed[session_id] = now
+        self._prune_expired(now)
+
+    def _prune_expired(self, now: float) -> None:
+        cutoff = now - settings.SESSION_TTL_SECONDS
+        expired = [sid for sid, ts in self._last_accessed.items() if ts < cutoff]
+        for sid in expired:
+            self._evidence.pop(sid, None)
+            self._states.pop(sid, None)
+            self._postmortems.pop(sid, None)
+            self._last_accessed.pop(sid, None)
+
+    def reset_session(self, session_id: str) -> None:
+        self._evidence.pop(session_id, None)
+        self._states.pop(session_id, None)
+        self._postmortems.pop(session_id, None)
+        self._touch(session_id)
 
     def get_or_create_state(self, session_id: str) -> InvestigationState:
+        self._touch(session_id)
         if session_id not in self._states:
             self._states[session_id] = InvestigationState(
                 session_id=session_id,
@@ -30,6 +54,7 @@ class EvidenceStore:
         return self._states[session_id]
 
     def update_state(self, session_id: str, new_state: InvestigationState) -> InvestigationState:
+        self._touch(session_id)
         new_state.session_id = session_id
         self._states[session_id] = new_state
         return new_state
@@ -99,6 +124,8 @@ class EvidenceStore:
             content = f.read()
 
         items = LogParser.parse_log_content(content, session_id=session_id)
+        # Replace previous scenario evidence for this session cleanly
+        self._evidence[session_id] = []
         self.store_evidence(session_id, items)
 
         # Set initial scenario state
@@ -108,13 +135,19 @@ class EvidenceStore:
             "scenario-3": ("Auth Token Refresh Storm & Rate Limit Rejection", "HIGH", "auth-service"),
         }
         title, sev, svc = scenario_metadata.get(scenario_id, ("Synthetic Incident", "HIGH", "unknown"))
-        state = self.get_or_create_state(session_id)
-        state.incident_title = title
-        state.severity = sev
-        state.affected_service = svc
-        state.status = "INVESTIGATING"
-        state.selected_evidence_ids = [items[0].id] if items else []
-        state.findings = [f"Loaded synthetic scenario: {title}"]
+        state = InvestigationState(
+            session_id=session_id,
+            incident_title=title,
+            severity=sev,
+            status="INVESTIGATING",
+            affected_service=svc,
+            selected_evidence_ids=[items[0].id] if items else [],
+            findings=[f"Loaded synthetic scenario: {title}"],
+            hypotheses=[],
+            proposed_remediations=[],
+            active_remediation_approval="NONE",
+            notes="",
+        )
         self.update_state(session_id, state)
 
         return items
