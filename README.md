@@ -113,12 +113,21 @@ Open [http://localhost:3000](http://localhost:3000) for the landing page, or [ht
 | Scope | Variable | Secret | Required | Format / Example |
 | :--- | :--- | :---: | :---: | :--- |
 | **Backend** | `ENVIRONMENT` | No | Yes | `development` or `production` |
-| **Backend** | `DATABASE_URL` | Yes (prod) | Yes | `sqlite+aiosqlite:///./traceanvaya.db` or `postgresql+asyncpg://...` |
+| **Backend** | `SESSION_SECRET` | Yes | Prod | >= 32-char HMAC key (`generateValue: true` in `render.yaml`) |
+| **Backend** | `DATABASE_URL` | Yes (prod) | Yes | `sqlite+aiosqlite:///./traceanvaya.db` or `postgresql://...` |
 | **Backend** | `CORS_ORIGINS` | No | Yes | `http://localhost:3000` or `https://your-app.vercel.app` |
 | **Backend** | `AI_PROVIDER` | No | Yes | `gemini` (or `openai`) |
 | **Backend** | `AI_MODEL` | No | Yes | `gemini-3.5-flash-lite` |
 | **Backend** | `GEMINI_API_KEY` | Yes | Optional | Google AI Studio key (omit for Demo Mode) |
-| **Backend** | `RATE_LIMIT_PER_MINUTE` | No | No | `30` (per-IP `/agent` requests per minute) |
+| **Backend** | `RATE_LIMIT_PER_MINUTE` | No | No | `30` (per-IP `/agent` requests/min) |
+| **Backend** | `SESSION_AI_LIMIT_PER_HOUR` | No | No | `40` (per-session hourly AI runs) |
+| **Backend** | `MAX_CONCURRENT_AI_PER_SESSION` | No | No | `2` (concurrent AI runs per session) |
+| **Backend** | `GLOBAL_AI_LIMIT_PER_HOUR` | No | No | `500` (global hourly AI safeguard) |
+| **Backend** | `SESSION_TTL_SECONDS` | No | No | `86400` (24h in-memory session TTL) |
+| **Backend** | `TRUST_PROXY_HEADERS` | No | No | `true` (trust `X-Forwarded-For` behind Render/Vercel) |
+| **Backend** | `MAX_AGENT_BODY_BYTES` | No | No | `131072` (128 KB `/agent` body limit) |
+| **Backend** | `MAX_RAW_EVIDENCE_BYTES` | No | No | `2097152` (2 MB `/api/evidence/raw` body limit) |
+| **Backend** | `MAX_UPLOAD_BYTES` | No | No | `10485760` (10 MB `/api/evidence/upload` file limit) |
 | **Frontend** | `NEXT_PUBLIC_API_URL` | No | Yes | `http://127.0.0.1:8000` or `https://traceanvaya-api.onrender.com` |
 | **Frontend** | `BACKEND_AGENT_URL` | No | Yes | `http://127.0.0.1:8000/agent` or `https://traceanvaya-api.onrender.com/agent` |
 
@@ -140,7 +149,7 @@ Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `DATABASE_URL` in `NEXT_PUBL
 cd backend
 .\.venv\Scripts\pytest -v
 ```
-Covers log parsing, secret redaction, session isolation, Pydantic AI tools (`TestModel`), human-gated remediation workflow, database persistence, and AG-UI event validation (`15 passed`).
+Covers log parsing, secret redaction, anonymous session isolation, body/upload size limits, rate/quota guards, Pydantic AI tools (`TestModel`), human-gated remediation workflow, database persistence, and AG-UI event validation (`20 passed`).
 
 ### Frontend Checks & Playwright E2E
 ```bash
@@ -148,7 +157,7 @@ cd frontend
 npx tsc --noEmit
 npm run lint
 npm run build
-npx playwright test tests/workspace.spec.ts tests/stage31-motion.spec.ts --workers=1
+npx playwright test tests/workspace.spec.ts tests/stage31-motion.spec.ts tests/security-and-polish.spec.ts --workers=1
 ```
 To include the live Gemini + CopilotKit E2E test (requires `GEMINI_API_KEY` and running backend/frontend servers):
 ```bash
@@ -166,8 +175,9 @@ TraceAnvaya is pre-configured for **Vercel** (frontend), **Render** (backend via
 ## Safety Boundaries & Known Limitations
 
 - **Simulated Remediation Only**: Approving a remediation plan records an operator decision in the audit trail (`APPROVED` / `REJECTED`) and never executes shell commands or modifies live infrastructure.
-- **Public Demo Session Scoping**: Without user authentication, scenarios map to deterministic session IDs (`session-scenario-1`, etc.) in the backend's in-memory `EvidenceStore`. Concurrent public visitors inspecting the same scenario share that scenario's in-memory session state until reset.
-- **In-Memory Rate Limiter**: `/api/agent` enforces a per-IP sliding-window limit (`RATE_LIMIT_PER_MINUTE`, default `30` req/min) and `128 KB` body cap in memory; `/api/evidence/upload` enforces a `10 MB` cap and `.log`/`.txt`/`.json`/`.jsonl` extension allowlist. Multi-worker deployments should place rate limiting at the API gateway or Redis layer.
+- **Anonymous Session Isolation**: Each visitor initializes an isolated session (`POST /api/sessions/init`) backed by an HMAC-SHA256 signed token (`traceanvaya_sid` `HttpOnly` cookie + `X-TraceAnvaya-Session` header). Production startup (`ENVIRONMENT=production`) requires `SESSION_SECRET` (>= 32 chars).
+- **Persistence Boundary**: PostgreSQL (Neon + Alembic `2b17c4fcd53d_initial_schema.py`) stores the relational schema (`investigations`, `evidence_items`, `hypotheses`, `remediations`, `postmortem_reports`), while active workspace sessions, AG-UI `StateDeps` snapshots, and rate/quota counters are stored in-memory (`EvidenceStore`, `AIRateAndQuotaGuard`) with 24h TTL pruning.
+- **Single-Process Rate & Quota Guards**: `/api/agent` enforces per-IP RPM (`30`), per-session hourly (`40`) and concurrency (`2`) limits, a global hourly safeguard (`500`), and a `128 KB` streaming body limit; `/api/evidence/raw` enforces `2 MB` and `/api/evidence/upload` enforces `10 MB`. Multi-worker deployments should place shared rate limiting in Redis or an API gateway.
 - **Free-Tier LLM Quotas**: Public live inference depends on the configured Gemini API tier and may return transient `429` or `503` provider responses under high load.
 
 ---

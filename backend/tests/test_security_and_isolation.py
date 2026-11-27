@@ -145,3 +145,19 @@ def test_rate_limit_and_quota_guard():
     guard.release_ai_slot("sess-test-1")
     ok, status_code, _ = guard.acquire_ai_slot("sess-test-1")
     assert ok is True
+
+
+def test_production_requires_session_secret(monkeypatch):
+    from app.core.security import validate_production_security
+
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(settings, "SESSION_SECRET", "")
+    with pytest.raises(RuntimeError, match="SESSION_SECRET"):
+        validate_production_security()
+
+    monkeypatch.setattr(settings, "SESSION_SECRET", "short-secret")
+    with pytest.raises(RuntimeError, match="SESSION_SECRET"):
+        validate_production_security()
+
+    monkeypatch.setattr(settings, "SESSION_SECRET", "a" * 32)
+    validate_production_security()

@@ -35,6 +35,12 @@ services:
       - AI_PROVIDER=gemini
       - AI_MODEL=gemini-3.5-flash-lite
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - SESSION_SECRET=${SESSION_SECRET:-local-docker-compose-session-secret-change-in-prod}
+      - RATE_LIMIT_PER_MINUTE=30
+      - SESSION_AI_LIMIT_PER_HOUR=40
+      - MAX_CONCURRENT_AI_PER_SESSION=2
+      - GLOBAL_AI_LIMIT_PER_HOUR=500
+      - TRUST_PROXY_HEADERS=true
       - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
     depends_on:
       postgres:

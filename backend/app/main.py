@@ -3,11 +3,13 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import router
 from app.core.config import settings
+from app.core.security import validate_production_security
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: ensure scenarios directory is loaded/verified
+    # Fail fast in production if SESSION_SECRET is missing or weak
+    validate_production_security()
     yield
     # Shutdown
 

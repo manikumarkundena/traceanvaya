@@ -33,15 +33,26 @@ A Render Blueprint is provided at the repository root in `render.yaml`.
 ### Required Backend Environment Variables
 | Variable | Description | Example |
 | :--- | :--- | :--- |
-| `ENVIRONMENT` | Runtime environment | `production` |
-| `DATABASE_URL` | Neon PostgreSQL URL | `postgresql+asyncpg://...` |
+| `ENVIRONMENT` | Runtime environment (`development` or `production`) | `production` |
+| `SESSION_SECRET` | HMAC signing key for anonymous sessions (>= 32 chars, required in prod) | Auto-generated in `render.yaml` |
+| `DATABASE_URL` | Neon PostgreSQL URL | `postgresql://user:pass@ep-xyz.neon.tech/traceanvaya?sslmode=require` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins | `https://traceanvaya.vercel.app` |
 | `AI_PROVIDER` | LLM provider (`gemini` or `openai`) | `gemini` |
 | `AI_MODEL` | Model identifier | `gemini-3.5-flash-lite` |
 | `GEMINI_API_KEY` | Google AI Studio API key (omit for Demo Mode) | `AIza...` |
 | `RATE_LIMIT_PER_MINUTE` | Per-IP `/agent` request limit | `30` |
+| `SESSION_AI_LIMIT_PER_HOUR` | Per-session hourly live AI turn cap | `40` |
+| `MAX_CONCURRENT_AI_PER_SESSION` | Max concurrent live AI requests per session | `2` |
+| `GLOBAL_AI_LIMIT_PER_HOUR` | Global hourly live AI safeguard across visitors | `500` |
+| `SESSION_TTL_SECONDS` | In-memory session expiration TTL (seconds) | `86400` |
+| `TRUST_PROXY_HEADERS` | Honor `X-Forwarded-For` behind Render/Vercel proxies | `true` |
+| `MAX_AGENT_BODY_BYTES` | Max `/agent` JSON payload size (bytes) | `131072` |
+| `MAX_RAW_EVIDENCE_BYTES` | Max `/api/evidence/raw` payload size (bytes) | `2097152` |
+| `MAX_UPLOAD_BYTES` | Max `/api/evidence/upload` file size (bytes) | `10485760` |
 
-> **Public Demo Safety**: If deploying a public portfolio demo without user authentication, omit `GEMINI_API_KEY` to run in **Demo Mode**, or set a strict `RATE_LIMIT_PER_MINUTE` and billing cap on your Gemini API key.
+> **Persistence Boundary**: PostgreSQL (Neon + Alembic `2b17c4fcd53d_initial_schema.py`) stores the relational schema (`investigations`, `evidence_items`, `hypotheses`, `remediations`, `postmortem_reports`), while active investigation workspaces, AG-UI `StateDeps` snapshots, and rate/quota counters are held in memory per backend worker (`EvidenceStore`, `AIRateAndQuotaGuard`) with 24-hour TTL pruning.
+
+> **Public Demo Safety**: If deploying a public portfolio demo without user authentication, omit `GEMINI_API_KEY` to run in **Demo Mode**, or keep `RATE_LIMIT_PER_MINUTE`, `SESSION_AI_LIMIT_PER_HOUR`, `GLOBAL_AI_LIMIT_PER_HOUR`, and a Gemini API billing cap enabled.
 
 ---
 

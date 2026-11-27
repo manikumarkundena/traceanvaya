@@ -7,13 +7,27 @@ from typing import Dict, List, Optional, Tuple
 from fastapi import HTTPException, Request, status
 from app.core.config import settings
 
-# Ephemeral fallback secret if SESSION_SECRET is not provided in environment
+# Ephemeral fallback secret for local development only when SESSION_SECRET is unset
 _PROCESS_FALLBACK_SECRET = secrets.token_urlsafe(32)
 
 
+def validate_production_security() -> None:
+    """Fail fast at startup if production is missing a strong SESSION_SECRET."""
+    if settings.ENVIRONMENT.strip().lower() == "production":
+        secret = settings.SESSION_SECRET.strip()
+        if len(secret) < 32:
+            raise RuntimeError(
+                "SESSION_SECRET must be set to at least 32 characters when ENVIRONMENT=production."
+            )
+
+
 def _get_signing_key() -> bytes:
-    secret = settings.SESSION_SECRET.strip() or _PROCESS_FALLBACK_SECRET
-    return secret.encode("utf-8")
+    secret = settings.SESSION_SECRET.strip()
+    if settings.ENVIRONMENT.strip().lower() == "production" and len(secret) < 32:
+        raise RuntimeError(
+            "SESSION_SECRET must be set to at least 32 characters when ENVIRONMENT=production."
+        )
+    return (secret or _PROCESS_FALLBACK_SECRET).encode("utf-8")
 
 
 def generate_session_id() -> str:
