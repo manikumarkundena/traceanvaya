@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef } from "react";
-import { Paperclip, Send, Sparkles, Square } from "lucide-react";
+import React, { useEffect, useRef, useState } from "react";
+import { ArrowDown, Paperclip, Send, Sparkles, Square } from "lucide-react";
 import { ChatMessage } from "../workspace/types";
 import { MessageItem } from "./MessageItem";
 
@@ -42,6 +42,47 @@ export function ChatPanel({
 }: ChatPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef<boolean>(true);
+  const prevMsgCountRef = useRef<number>(messages.length);
+  const [showJumpToLatest, setShowJumpToLatest] = useState<boolean>(false);
+
+  const handleChatScroll = () => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    const nearBottom = distanceFromBottom < 100;
+    isNearBottomRef.current = nearBottom;
+    setShowJumpToLatest(!nearBottom && messages.length > 1);
+  };
+
+  const scrollToLatest = (behavior: ScrollBehavior = "smooth") => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior });
+    isNearBottomRef.current = true;
+    setShowJumpToLatest(false);
+  };
+
+  // Intelligent auto-scroll: follow streaming only when near bottom or when user just sent a message
+  useEffect(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const lastMsg = messages[messages.length - 1];
+    const userJustSent =
+      messages.length > prevMsgCountRef.current && lastMsg?.role === "user";
+    prevMsgCountRef.current = messages.length;
+
+    if (userJustSent) {
+      el.scrollTop = el.scrollHeight;
+      isNearBottomRef.current = true;
+      setShowJumpToLatest(false);
+    } else if (isNearBottomRef.current) {
+      el.scrollTop = el.scrollHeight;
+    } else if (messages.length > 1) {
+      setShowJumpToLatest(true);
+    }
+  }, [messages, isGenerating]);
 
   // Auto-resize textarea to fit multiline input cleanly
   useEffect(() => {
@@ -55,7 +96,7 @@ export function ChatPanel({
     messages.length === 1 ? "1 message" : `${messages.length} messages`;
 
   return (
-    <section className="flex-1 flex flex-col min-w-0 border-r border-white/[0.08] bg-[#070B09] relative">
+    <section className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden border-r border-white/[0.08] bg-[#070B09] relative">
       {/* Clean Product Chat Header */}
       <div className="h-11 border-b border-white/[0.08] bg-[#0B110E] flex items-center justify-between px-4 sm:px-5 flex-shrink-0">
         <div className="flex items-center gap-2.5">
@@ -82,7 +123,13 @@ export function ChatPanel({
       </div>
 
       {/* Chat Messages Scroll Area */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleChatScroll}
+        tabIndex={0}
+        aria-label="Investigation conversation"
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6 space-y-5 focus:outline-none"
+      >
         {/* First-Use Onboarding Guide (visible at start of investigation, hides naturally once user engages) */}
         {messages.length <= 1 && (
           <div className="p-4 sm:p-5 rounded-xl border border-white/[0.08] bg-[#0D1411] space-y-2.5 max-w-2xl">
@@ -127,6 +174,20 @@ export function ChatPanel({
         )}
         <div ref={chatBottomRef} />
       </div>
+
+      {/* Subtle Jump-to-Latest Button when user scrolls up */}
+      {showJumpToLatest && (
+        <div className="flex justify-center pointer-events-none relative z-10 -mt-10 mb-2">
+          <button
+            type="button"
+            onClick={() => scrollToLatest("smooth")}
+            className="pointer-events-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#0D1411]/95 border border-accent/35 text-xs font-medium text-accent shadow-lg backdrop-blur-md hover:bg-[#13201B] transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+            <span>Jump to latest</span>
+          </button>
+        </div>
+      )}
 
       {/* Contextual Suggested Prompts */}
       <div className="px-4 py-2.5 border-t border-white/[0.06] bg-[#090F0C] flex items-center gap-2 overflow-x-auto">

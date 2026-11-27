@@ -26,7 +26,7 @@ export function IncidentReplay({
   }
 
   return (
-    <div className="flex-1 flex flex-col p-4 sm:p-5 space-y-4 overflow-y-auto">
+    <div className="flex-1 min-h-0 flex flex-col p-4 sm:p-5 space-y-4 overflow-y-auto overscroll-contain">
       <div className="p-4 rounded-xl border border-white/[0.08] bg-surface-elevated space-y-3 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.04)]">
         <div className="flex items-center justify-between font-mono text-xs">
           <span className="text-accent font-semibold flex items-center gap-1.5">

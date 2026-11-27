@@ -49,8 +49,8 @@ export function WorkspaceHeader({
       ? "Local Ollama"
       : "Demo Mode";
   return (
-    <header className="h-14 border-b border-white/[0.08] bg-[#0B110E] flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20">
-      <div className="flex items-center gap-3 sm:gap-4 min-w-0">
+    <header className="h-14 border-b border-white/[0.08] bg-[#0B110E] flex items-center justify-between gap-2 px-3 sm:px-6 flex-shrink-0 z-20">
+      <div className="flex items-center gap-2 sm:gap-4 min-w-0 overflow-hidden">
         <Link
           href="/"
           className="hover:opacity-85 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded-md flex-shrink-0"
@@ -61,7 +61,7 @@ export function WorkspaceHeader({
         <div className="h-4 w-px bg-white/[0.1] hidden sm:block flex-shrink-0" />
 
         {/* Incident title, severity & status */}
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="hidden sm:flex items-center gap-2 min-w-0">
           <span className="font-semibold text-xs sm:text-sm truncate max-w-[140px] sm:max-w-xs text-foreground font-sans">
             {canvasState.incident_title}
           </span>

@@ -55,7 +55,11 @@ export function InvestigationCanvas({
     canvasState.proposed_remediations.length === 0;
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-6 bg-[#080D0B]">
+    <div
+      tabIndex={0}
+      aria-label="Investigation overview"
+      className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-5 space-y-6 bg-[#080D0B] focus:outline-none"
+    >
       {/* 1. Incident Overview (Editable Metadata) */}
       <section className="p-4 rounded-xl border border-white/[0.08] bg-[#0D1411] space-y-3.5">
         <div className="flex items-center justify-between">

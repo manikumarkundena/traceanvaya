@@ -43,7 +43,7 @@ export function MessageItem({ message, onCitationClick }: MessageItemProps) {
 
       <div
         className={cn(
-          "p-3.5 sm:p-4 rounded-xl text-xs sm:text-sm leading-relaxed max-w-2xl border transition-colors duration-200 break-words",
+          "p-4 sm:p-5 rounded-xl text-[15px] leading-[1.7] max-w-3xl border transition-colors duration-200 break-words",
           isUser
             ? "bg-accent/[0.12] border-accent/30 text-foreground"
             : isSystem

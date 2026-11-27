@@ -110,7 +110,7 @@ export function EvidenceExplorer({
       </div>
 
       {/* Evidence item list */}
-      <div className="flex-1 overflow-y-auto divide-y divide-white/[0.06]">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain divide-y divide-white/[0.06]">
         {filtered.length === 0 ? (
           <div className="p-8 text-center text-xs font-mono text-muted">
             No matching evidence entries found.

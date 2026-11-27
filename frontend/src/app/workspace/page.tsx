@@ -185,11 +185,6 @@ function WorkspaceContent() {
   const chatBottomRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Auto-scroll chat
-  useEffect(() => {
-    chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
   // Load telemetry when scenario changes
   useEffect(() => {
     loadScenarioTelemetry(currentScenario);
@@ -1053,7 +1048,7 @@ function WorkspaceContent() {
   };
 
   return (
-    <div className="flex flex-col h-screen w-screen bg-[#060908] text-foreground overflow-hidden font-sans">
+    <div className="flex flex-col h-dvh w-full bg-[#060908] text-foreground overflow-hidden font-sans">
       {/* Workspace Header */}
       <WorkspaceHeader
         canvasState={canvasState}
@@ -1096,12 +1091,12 @@ function WorkspaceContent() {
       </div>
 
       {/* 2-Panel Split Layout */}
-      <div className="flex flex-1 overflow-hidden">
+      <div className="flex flex-1 min-h-0 overflow-hidden">
         {/* Left: Chat Panel */}
         <div
           className={`${
             mobilePanel === "chat" ? "flex" : "hidden"
-          } lg:flex flex-1 min-w-0 flex-col`}
+          } lg:flex flex-1 min-w-0 min-h-0 flex-col overflow-hidden`}
         >
           <ChatPanel
             messages={messages}
@@ -1122,7 +1117,7 @@ function WorkspaceContent() {
         <section
           className={`${
             mobilePanel !== "chat" ? "flex" : "hidden"
-          } lg:flex w-full lg:w-[42%] xl:w-[40%] max-w-[620px] min-w-0 lg:min-w-[380px] flex-col bg-[#080D0B] border-l border-white/[0.08] overflow-hidden`}
+          } lg:flex w-full lg:w-[42%] xl:w-[40%] max-w-[640px] min-w-0 min-h-0 lg:min-w-[380px] flex-col bg-[#080D0B] border-l border-white/[0.08] overflow-hidden`}
         >
           {/* Desktop Tab Switcher */}
           <div className="hidden lg:flex h-11 border-b border-white/[0.08] bg-[#0B110E] items-center justify-between px-3 flex-shrink-0">
