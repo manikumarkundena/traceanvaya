@@ -34,7 +34,9 @@ function WorkspaceContent() {
       : ""
   );
   const [backendOnline, setBackendOnline] = useState<boolean>(false);
+  const [backendSynced, setBackendSynced] = useState<boolean>(false);
   const [aiMode, setAiMode] = useState<"live" | "demo">("demo");
+  const initPromiseRef = useRef<Promise<{ sid: string; token: string }> | null>(null);
   const [providerCatalog, setProviderCatalog] = useState<ProviderCatalog | null>(null);
   const [showCustomModal, setShowCustomModal] = useState<boolean>(false);
   const [showProviderModal, setShowProviderModal] = useState<boolean>(false);
@@ -48,37 +50,57 @@ function WorkspaceContent() {
     }, 2600);
   };
 
-  const ensureSession = async (): Promise<{ sid: string; token: string }> => {
-    if (sessionTokenRef.current && sessionId && !sessionId.startsWith("sess-local-")) {
+  const ensureSession = async (forceRefresh = false): Promise<{ sid: string; token: string }> => {
+    if (forceRefresh) {
+      sessionTokenRef.current = "";
+      initPromiseRef.current = null;
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem("traceanvaya_session_id");
+        window.sessionStorage.removeItem("traceanvaya_session_token");
+      }
+    } else if (sessionTokenRef.current && sessionId && !sessionId.startsWith("sess-local-")) {
       return { sid: sessionId, token: sessionTokenRef.current };
     }
+
     if (!BACKEND_URL) {
       return { sid: sessionId, token: "" };
     }
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/sessions/init`, {
-        method: "POST",
-        credentials: "include",
-        headers: sessionTokenRef.current
-          ? { "X-TraceAnvaya-Session": sessionTokenRef.current }
-          : undefined,
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.session_id && data.token) {
-          sessionTokenRef.current = data.token;
-          setSessionId(data.session_id);
-          if (typeof window !== "undefined") {
-            window.sessionStorage.setItem("traceanvaya_session_id", data.session_id);
-            window.sessionStorage.setItem("traceanvaya_session_token", data.token);
-          }
-          return { sid: data.session_id, token: data.token };
-        }
-      }
-    } catch {
-      // Offline / Demo Mode fallback
+
+    if (initPromiseRef.current) {
+      return initPromiseRef.current;
     }
-    return { sid: sessionId, token: sessionTokenRef.current };
+
+    initPromiseRef.current = (async () => {
+      try {
+        const res = await fetch(`${BACKEND_URL}/api/sessions/init`, {
+          method: "POST",
+          credentials: "include",
+          headers:
+            !forceRefresh && sessionTokenRef.current
+              ? { "X-TraceAnvaya-Session": sessionTokenRef.current }
+              : undefined,
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.session_id && data.token) {
+            sessionTokenRef.current = data.token;
+            setSessionId(data.session_id);
+            if (typeof window !== "undefined") {
+              window.sessionStorage.setItem("traceanvaya_session_id", data.session_id);
+              window.sessionStorage.setItem("traceanvaya_session_token", data.token);
+            }
+            return { sid: data.session_id, token: data.token };
+          }
+        }
+      } catch {
+        // Offline / Demo Mode fallback
+      } finally {
+        initPromiseRef.current = null;
+      }
+      return { sid: sessionId, token: sessionTokenRef.current };
+    })();
+
+    return initPromiseRef.current;
   };
 
   const authHeaders = (token: string, extra?: Record<string, string>): Record<string, string> => ({
@@ -232,27 +254,37 @@ function WorkspaceContent() {
 
     const preset = SCENARIO_PRESETS[scenarioKey] || SCENARIO_PRESETS["scenario-1"];
     let loadedEvidence: EvidenceItem[] = [];
-    let backendSynced = false;
+    let synced = false;
     let syncErrorDetail = "";
+    setBackendSynced(false);
 
     try {
-      const { sid, token } = await ensureSession();
+      let { sid, token } = await ensureSession(false);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000);
 
-      // Load scenario into backend store if available
-      const loadRes = await fetch(
-        `${BACKEND_URL}/api/scenarios/${scenarioKey}/load?session_id=${sid}`,
-        {
+      const attemptScenarioLoad = async (targetSid: string, targetToken: string) =>
+        fetch(`${BACKEND_URL}/api/scenarios/${scenarioKey}/load?session_id=${targetSid}`, {
           method: "POST",
           credentials: "include",
-          headers: authHeaders(token),
+          headers: authHeaders(targetToken),
           signal: controller.signal,
+        }).catch((err) => {
+          syncErrorDetail = err?.message || "Network error";
+          return null;
+        });
+
+      let loadRes = await attemptScenarioLoad(sid, token);
+
+      // Safe single retry on 401/403 (stale token after backend restart or SESSION_SECRET rotation)
+      if (loadRes && (loadRes.status === 401 || loadRes.status === 403)) {
+        const refreshed = await ensureSession(true);
+        sid = refreshed.sid;
+        token = refreshed.token;
+        if (token) {
+          loadRes = await attemptScenarioLoad(sid, token);
         }
-      ).catch((err) => {
-        syncErrorDetail = err?.message || "Network error";
-        return null;
-      });
+      }
 
       if (loadRes && loadRes.ok) {
         setBackendOnline(true);
@@ -268,7 +300,8 @@ function WorkspaceContent() {
           const evData = await evRes.json();
           if (Array.isArray(evData) && evData.length > 0) {
             loadedEvidence = evData;
-            backendSynced = true;
+            synced = true;
+            setBackendSynced(true);
           }
         }
       } else if (loadRes) {
@@ -280,8 +313,9 @@ function WorkspaceContent() {
       syncErrorDetail = err?.message || "Connection failed";
     }
 
-    if (!backendSynced) {
+    if (!synced) {
       // Only use local offline preview when backend is unreachable/demo; never claim backend ingestion succeeded
+      setBackendSynced(false);
       loadedEvidence = BACKEND_URL ? [] : preset.evidence;
       setEvidenceList(loadedEvidence);
       setSelectedEvidence(loadedEvidence[0] || null);
@@ -941,7 +975,9 @@ function WorkspaceContent() {
       nextState.source_labels = Array.from(
         new Set(loadedItems.map((e) => e.source_label || e.service).filter(Boolean))
       );
+      setBackendSynced(true);
     } else {
+      setBackendSynced(false);
       setEvidenceList([]);
       setSelectedEvidence(null);
     }
@@ -1132,6 +1168,7 @@ function WorkspaceContent() {
             <InvestigationCanvas
               canvasState={canvasState}
               backendOnline={backendOnline}
+              backendSynced={backendSynced}
               onUpdateCanvasState={handleUpdateCanvasState}
               onRemediationDecision={handleRemediationDecision}
               onCitationClick={handleCitationClick}

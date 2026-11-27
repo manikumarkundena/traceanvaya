@@ -68,4 +68,17 @@ test.describe("Production Security, Sticky Navbar & Visual Polish", () => {
     await page.waitForTimeout(500);
     await page.screenshot({ path: "../screenshots/polish-audit/after-workspace-1440.png" });
   });
+
+  test("Stale or expired sessionStorage token recovers cleanly without error banner", async ({ page }) => {
+    await page.addInitScript(() => {
+      window.sessionStorage.setItem("traceanvaya_session_id", "sess-stale12345");
+      window.sessionStorage.setItem("traceanvaya_session_token", "sess-stale12345.1000000000.invalidsig");
+    });
+
+    await page.goto("/workspace?scenario=scenario-1");
+    await expect(page.locator("text=Example Scenario (Synthetic Telemetry)")).toBeVisible({ timeout: 10000 });
+    await expect(page.locator('button:has-text("Evidence (14)"):visible')).toBeVisible();
+    await expect(page.getByText("Synced with backend", { exact: true })).toBeVisible();
+    await expect(page.locator("text=Backend Telemetry Sync Failed")).not.toBeVisible();
+  });
 });

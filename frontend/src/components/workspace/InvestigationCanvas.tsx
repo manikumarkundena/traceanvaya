@@ -7,6 +7,7 @@ import { InvestigationState } from "./types";
 interface InvestigationCanvasProps {
   canvasState: InvestigationState;
   backendOnline: boolean;
+  backendSynced?: boolean;
   onUpdateCanvasState: (updates: Partial<InvestigationState>) => void;
   onRemediationDecision: (decision: "APPROVED" | "REJECTED") => void;
   onCitationClick: (evidenceId: string) => void;
@@ -41,6 +42,7 @@ function formatApprovalBadge(approval: string) {
 export function InvestigationCanvas({
   canvasState,
   backendOnline,
+  backendSynced = false,
   onUpdateCanvasState,
   onRemediationDecision,
   onCitationClick,
@@ -61,7 +63,7 @@ export function InvestigationCanvas({
             Incident overview
           </h3>
           <span className="text-[11px] font-sans text-slate-400">
-            {backendOnline ? "Synced with backend" : "Local session"}
+            {backendSynced ? "Synced with backend" : backendOnline ? "Not synced" : "Local session"}
           </span>
         </div>
 
@@ -123,7 +125,9 @@ export function InvestigationCanvas({
       {isFreshState && onLoadExampleInvestigation && (
         <div className="p-3.5 rounded-xl border border-dashed border-white/[0.12] bg-[#0B120F] flex items-center justify-between gap-3">
           <div className="text-xs text-muted font-sans leading-relaxed">
-            Investigation starts clean with preloaded telemetry. Ask the investigator to analyze the logs, or load an example completed walkthrough.
+            {backendSynced
+              ? "Telemetry is synced with the backend. Ask the investigator to analyze the logs, or load an example completed walkthrough."
+              : "Upload or paste logs, or sync an example scenario with the backend before running live analysis."}
           </div>
           <button
             type="button"

@@ -30,7 +30,13 @@ export function MessageItem({ message, onCitationClick }: MessageItemProps) {
           <span className="w-1.5 h-1.5 rounded-full bg-accent inline-block" />
         )}
         <span className="font-medium text-slate-200 font-sans">
-          {isUser ? "You" : isSystem ? "Approval Gate" : "Investigator"}
+          {isUser
+            ? "You"
+            : isSystem
+            ? message.content.includes("Remediation")
+              ? "Approval Gate"
+              : "System Notice"
+            : "Investigator"}
         </span>
         <span className="font-mono text-[11px] text-slate-500">{message.timestamp}</span>
       </div>
