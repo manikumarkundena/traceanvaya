@@ -43,15 +43,15 @@ export function HeroSection() {
 
         {/* Supporting Copy */}
         <p className="text-base sm:text-lg text-[#94A3B8] max-w-2xl mb-7 leading-relaxed font-sans">
-          Investigate failures. Correlate evidence. Replay incidents.{" "}
+          Investigate your own application logs or explore sample incidents.{" "}
           <br className="hidden sm:inline" />
-          Understand what went wrong with an AI-powered workspace.
+          Correlate evidence across services, replay timelines, and export incident reports.
         </p>
 
         {/* Primary & Secondary CTAs */}
         <div className="flex flex-wrap items-center gap-3.5 w-full sm:w-auto">
           <Link
-            href="/workspace"
+            href="/workspace?new=1"
             className="group inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-sm font-semibold bg-accent text-[#050807] hover:brightness-105 hover:-translate-y-[1px] active:scale-[0.98] transition-all duration-200 shadow-[inset_0_1px_0_0_rgba(255,255,255,0.45),0_4px_16px_-4px_rgba(94,234,212,0.38)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
           >
             <span>Start investigating</span>

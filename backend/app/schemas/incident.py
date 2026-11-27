@@ -12,6 +12,8 @@ class EvidenceItem(BaseModel):
     raw_log: str
     is_anomaly: bool = False
     correlated_ids: List[str] = Field(default_factory=list)
+    source_label: str = ""
+    trace_id: Optional[str] = None
 
 
 class HypothesisItem(BaseModel):
@@ -38,10 +40,13 @@ class RemediationItem(BaseModel):
 
 class InvestigationState(BaseModel):
     session_id: str = "default-session"
+    project_name: str = ""
     incident_title: str = "Investigating Incident"
-    severity: str = "HIGH"  # LOW, MEDIUM, HIGH, CRITICAL
+    incident_description: str = ""
+    severity: str = "HIGH"  # UNKNOWN, LOW, MEDIUM, HIGH, CRITICAL
     status: str = "INVESTIGATING"  # INVESTIGATING, HYPOTHESIS_FORMED, MITIGATED, RESOLVED
     affected_service: str = "unknown"
+    source_labels: List[str] = Field(default_factory=list)
     selected_evidence_ids: List[str] = Field(default_factory=list)
     findings: List[str] = Field(default_factory=list)
     hypotheses: List[str] = Field(default_factory=list)
@@ -70,6 +75,19 @@ class IngestLogRequest(BaseModel):
     session_id: str = "default-session"
     raw_content: str
     filename: Optional[str] = "upload.log"
+    source_label: Optional[str] = None
+
+
+class CustomInvestigationRequest(BaseModel):
+    project_name: str = ""
+    incident_title: str
+    incident_description: str = ""
+    affected_service: str = "unknown"
+    severity: str = "UNKNOWN"  # UNKNOWN, LOW, MEDIUM, HIGH, CRITICAL
+
+
+class ProviderSelectionRequest(BaseModel):
+    provider: str
 
 
 class IngestResponse(BaseModel):
@@ -78,3 +96,4 @@ class IngestResponse(BaseModel):
     anomalies_detected: int
     services: List[str]
     severity_breakdown: Dict[str, int]
+    source_label: Optional[str] = None

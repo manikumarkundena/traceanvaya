@@ -1,14 +1,17 @@
 import React from "react";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { EvidenceItem } from "./types";
 
 interface EvidenceExplorerProps {
   evidenceList: EvidenceItem[];
   searchQuery: string;
   severityFilter: string;
+  sourceFilter?: string;
   selectedEvidence: EvidenceItem | null;
   onSearchChange: (query: string) => void;
   onSeverityChange: (severity: string) => void;
+  onSourceChange?: (source: string) => void;
+  onRemoveSource?: (sourceLabel: string) => void;
   onSelectEvidence: (item: EvidenceItem) => void;
   onCitationClick: (evidenceId: string) => void;
 }
@@ -17,51 +20,92 @@ export function EvidenceExplorer({
   evidenceList,
   searchQuery,
   severityFilter,
+  sourceFilter = "ALL",
   selectedEvidence,
   onSearchChange,
   onSeverityChange,
+  onSourceChange,
+  onRemoveSource,
   onSelectEvidence,
   onCitationClick,
 }: EvidenceExplorerProps) {
+  const uniqueSources = Array.from(
+    new Set(evidenceList.map((e) => e.source_label || e.service).filter(Boolean))
+  );
+
   const filtered = evidenceList.filter((item) => {
     const matchesSev = severityFilter === "ALL" || item.severity === severityFilter;
+    const itemSource = item.source_label || item.service;
+    const matchesSource = sourceFilter === "ALL" || itemSource === sourceFilter;
     const matchesQuery =
       !searchQuery ||
       item.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      item.service.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesSev && matchesQuery;
+      item.service.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (item.trace_id && item.trace_id.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesSev && matchesSource && matchesQuery;
   });
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      {/* Search & severity filters */}
+      {/* Search, source & severity filters */}
       <div className="p-3 border-b border-white/[0.08] bg-surface-elevated space-y-2">
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder="Search logs by ID, message, or service..."
-            className="w-full bg-background border border-white/[0.1] rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-accent font-mono transition-colors"
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className="w-3.5 h-3.5 text-muted absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder="Search logs by ID, trace ID, message, or service..."
+              className="w-full bg-background border border-white/[0.1] rounded-lg pl-8 pr-3 py-1.5 text-xs text-foreground placeholder:text-muted focus:outline-none focus:border-accent font-mono transition-colors"
+            />
+          </div>
+          {onSourceChange && uniqueSources.length > 0 && (
+            <select
+              aria-label="Filter by source"
+              value={sourceFilter}
+              onChange={(e) => onSourceChange(e.target.value)}
+              className="bg-background border border-white/[0.1] rounded-lg px-2 py-1.5 text-[11px] font-mono text-foreground focus:outline-none focus:border-accent max-w-[140px]"
+            >
+              <option value="ALL">All sources ({uniqueSources.length})</option>
+              {uniqueSources.map((src) => (
+                <option key={src} value={src}>
+                  {src}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
 
-        <div className="flex items-center gap-1 text-[10px] font-mono overflow-x-auto">
-          {["ALL", "CRITICAL", "ERROR", "WARN", "INFO"].map((sev) => (
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1 text-[10px] font-mono overflow-x-auto">
+            {["ALL", "CRITICAL", "ERROR", "WARN", "INFO"].map((sev) => (
+              <button
+                key={sev}
+                onClick={() => onSeverityChange(sev)}
+                className={`px-2 py-0.5 rounded transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                  severityFilter === sev
+                    ? "bg-accent text-background font-bold"
+                    : "bg-surface border border-white/[0.08] text-muted hover:text-foreground"
+                }`}
+              >
+                {sev}
+              </button>
+            ))}
+          </div>
+
+          {onRemoveSource && sourceFilter !== "ALL" && (
             <button
-              key={sev}
-              onClick={() => onSeverityChange(sev)}
-              className={`px-2 py-0.5 rounded transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
-                severityFilter === sev
-                  ? "bg-accent text-background font-bold"
-                  : "bg-surface border border-white/[0.08] text-muted hover:text-foreground"
-              }`}
+              type="button"
+              onClick={() => onRemoveSource(sourceFilter)}
+              className="inline-flex items-center gap-1 text-[10px] font-mono text-critical hover:underline flex-shrink-0"
+              title={`Remove source ${sourceFilter}`}
             >
-              {sev}
+              <Trash2 className="w-3 h-3" />
+              <span>Remove source</span>
             </button>
-          ))}
+          )}
         </div>
       </div>
 

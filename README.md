@@ -135,10 +135,32 @@ Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `DATABASE_URL` in `NEXT_PUBL
 
 ---
 
-## Live AI Mode vs. Deterministic Demo Mode
+## Live AI, Local Ollama & Deterministic Demo Mode
 
-- **Live AI Mode**: When `GEMINI_API_KEY` is configured on the backend, `/api/health` returns `ai_configured: true`. The workspace displays **Live AI**, routes chat turns through `/api/copilotkit` → FastAPI `/agent`, and surfaces explicit provider errors (e.g., 429 quota or 503 availability) without silently falling back to fake responses.
-- **Deterministic Demo Mode**: When no LLM API key is configured (or when running the frontend standalone), the workspace displays **Demo Mode** and runs deterministic, scenario-grounded analysis so every feature remains testable without external API credentials.
+TraceAnvaya supports three server-configured inference modes (credentials and base URLs are never exposed to the browser):
+
+1. **Google Gemini (Default Hosted Provider)**:
+   Set `AI_PROVIDER=gemini`, `AI_MODEL=gemini-3.5-flash-lite`, and `GEMINI_API_KEY` in `.env`.
+2. **OpenAI (Optional)**:
+   Set `AI_PROVIDER=openai`, `OPENAI_API_KEY`, and a tool-capable `OPENAI_MODEL` (e.g. `gpt-4o-mini`).
+3. **Local Ollama (Optional, Local-Only)**:
+   Install Ollama locally, pull a tool-capable model (`ollama pull llama3.1:8b`), start `ollama serve`, and set `AI_PROVIDER=ollama`, `OLLAMA_ENABLED=true`, `OLLAMA_BASE_URL=http://localhost:11434`, and `OLLAMA_MODEL=llama3.1:8b`.
+   - *Docker*: When the backend runs inside Docker and Ollama runs on the host, set `OLLAMA_BASE_URL=http://host.docker.internal:11434`.
+   - *Remote Hosting*: A remotely hosted backend (Render) cannot access Ollama on a user's `localhost`.
+4. **Deterministic Demo Mode**:
+   When no LLM credentials are configured, the workspace displays **Demo Mode** and runs deterministic scenario analysis without external API calls. Failed live requests never fall back silently to fake responses.
+
+---
+
+## Investigating Your Own Logs
+
+Click **New Investigation** in the workspace (or open `/workspace?new=1`) to create a genuinely empty custom investigation with zero preloaded demo logs:
+
+- **Supported Formats**: `.log`, `.txt`, `.json`, `.jsonl` (up to `10 MB` upload / `2 MB` paste).
+- **Multi-Service Labeling**: Tag each source (`Frontend`, `Backend`, `Database`, `API gateway`, `Authentication service`, `Infrastructure`, or a custom service name).
+- **Correlation**: `LogParser` extracts ISO timestamps, severity, `trace_id`/`request_id`, and correlates anomalies across services without inventing missing timestamps.
+- **Privacy & Redaction**: Before submitting, inspect the sanitized preview (`[REDACTED_JWT]`, `[REDACTED_API_KEY]`, `[REDACTED_PASSWORD]`, `[REDACTED_DB_PASS]`). Automatic redaction does not guarantee removal of every secret format.
+- **Scope**: TraceAnvaya is an interactive incident investigation workspace—it is not an automatic website scanner, browser extension, or continuous monitoring agent.
 
 ---
 

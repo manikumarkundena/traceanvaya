@@ -1,13 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { EvidenceItem, InvestigationState, ChatMessage } from "@/components/workspace/types";
+import { EvidenceItem, InvestigationState, ChatMessage, ProviderCatalog } from "@/components/workspace/types";
 import { WorkspaceHeader } from "@/components/workspace/WorkspaceHeader";
 import { ChatPanel } from "@/components/chat/ChatPanel";
 import { InvestigationCanvas } from "@/components/workspace/InvestigationCanvas";
 import { EvidenceExplorer } from "@/components/workspace/EvidenceExplorer";
 import { IncidentReplay } from "@/components/workspace/IncidentReplay";
 import { PostmortemModal } from "@/components/workspace/PostmortemModal";
+import { CustomInvestigationModal, PendingLogSource } from "@/components/workspace/CustomInvestigationModal";
+import { ProviderSettingsModal } from "@/components/workspace/ProviderSettingsModal";
 import {
   SCENARIO_PRESETS,
   createInitialCanvasState,
@@ -33,6 +35,10 @@ function WorkspaceContent() {
   );
   const [backendOnline, setBackendOnline] = useState<boolean>(false);
   const [aiMode, setAiMode] = useState<"live" | "demo">("demo");
+  const [providerCatalog, setProviderCatalog] = useState<ProviderCatalog | null>(null);
+  const [showCustomModal, setShowCustomModal] = useState<boolean>(false);
+  const [showProviderModal, setShowProviderModal] = useState<boolean>(false);
+  const [sourceFilter, setSourceFilter] = useState<string>("ALL");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -84,7 +90,13 @@ function WorkspaceContent() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const sc = params.get("scenario");
-      if (sc) setCurrentScenario(sc);
+      const isNew = params.get("new") === "1";
+      if (isNew) {
+        setCurrentScenario("custom");
+        setShowCustomModal(true);
+      } else if (sc) {
+        setCurrentScenario(sc);
+      }
     }
   }, []);
 
@@ -103,6 +115,13 @@ function WorkspaceContent() {
           const data = await res.json();
           setBackendOnline(true);
           setAiMode(data.ai_configured ? "live" : "demo");
+          const provRes = await fetch(`${BACKEND_URL}/api/providers`, {
+            credentials: "include",
+            headers: authHeaders(sessionTokenRef.current),
+          }).catch(() => null);
+          if (provRes && provRes.ok) {
+            setProviderCatalog(await provRes.json());
+          }
         }
       } catch {
         setBackendOnline(false);
@@ -181,8 +200,21 @@ function WorkspaceContent() {
     setIsPlaying(false);
     setSearchQuery("");
     setSeverityFilter("ALL");
+    setSourceFilter("ALL");
 
     if (scenarioKey === "custom") {
+      if (BACKEND_URL) {
+        try {
+          const { sid, token } = await ensureSession();
+          await fetch(`${BACKEND_URL}/api/sessions/reset?session_id=${sid}`, {
+            method: "POST",
+            credentials: "include",
+            headers: authHeaders(token),
+          });
+        } catch {
+          // Ignore offline reset
+        }
+      }
       setEvidenceList([]);
       setSelectedEvidence(null);
       setMessages([
@@ -190,7 +222,7 @@ function WorkspaceContent() {
           id: `msg-init-${Date.now()}`,
           role: "assistant",
           content:
-            "Workspace ready. Upload a log file (`.log`, `.txt`, `.json`) using the paperclip icon below, or select one of the synthetic incident scenarios from the header.",
+            "Custom workspace ready with **0** preloaded demo logs.\n\nChoose **New Investigation** in the header to upload or paste multiple log sources, or select a sample incident from the dropdown.",
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
@@ -805,6 +837,157 @@ function WorkspaceContent() {
     showToast("Investigation reset");
   };
 
+  // Create a genuinely empty custom investigation and ingest labeled log sources
+  const handleCreateCustomInvestigation = async (payload: {
+    projectName: string;
+    incidentTitle: string;
+    incidentDescription: string;
+    affectedService: string;
+    severity: string;
+    sources: PendingLogSource[];
+  }) => {
+    handleCancelGeneration();
+    const { sid, token } = await ensureSession();
+
+    let nextState: InvestigationState = {
+      session_id: sid,
+      project_name: payload.projectName,
+      incident_title: payload.incidentTitle,
+      incident_description: payload.incidentDescription,
+      severity: payload.severity,
+      status: "INVESTIGATING",
+      affected_service: payload.affectedService,
+      source_labels: [],
+      selected_evidence_ids: [],
+      findings: [],
+      hypotheses: [],
+      proposed_remediations: [],
+      active_remediation_approval: "NONE",
+      notes: "",
+    };
+
+    if (backendOnline) {
+      const createRes = await fetch(`${BACKEND_URL}/api/investigations/custom`, {
+        method: "POST",
+        credentials: "include",
+        headers: authHeaders(token, { "Content-Type": "application/json" }),
+        body: JSON.stringify({
+          project_name: payload.projectName,
+          incident_title: payload.incidentTitle,
+          incident_description: payload.incidentDescription,
+          affected_service: payload.affectedService,
+          severity: payload.severity,
+        }),
+      });
+      if (!createRes.ok) {
+        const err = await createRes.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to initialize custom investigation.");
+      }
+      nextState = await createRes.json();
+
+      for (const src of payload.sources) {
+        const ingestRes = await fetch(`${BACKEND_URL}/api/evidence/raw`, {
+          method: "POST",
+          credentials: "include",
+          headers: authHeaders(token, { "Content-Type": "application/json" }),
+          body: JSON.stringify({
+            session_id: sid,
+            raw_content: src.rawContent,
+            filename: src.filename,
+            source_label: src.label,
+          }),
+        });
+        if (!ingestRes.ok) {
+          const err = await ingestRes.json().catch(() => ({}));
+          throw new Error(err.detail || `Failed to ingest source '${src.label}'.`);
+        }
+      }
+
+      const evRes = await fetch(`${BACKEND_URL}/api/evidence?session_id=${sid}&limit=200`, {
+        credentials: "include",
+        headers: authHeaders(token),
+      });
+      const loadedItems: EvidenceItem[] = evRes.ok ? await evRes.json() : [];
+      setEvidenceList(loadedItems);
+      setSelectedEvidence(loadedItems[0] || null);
+      nextState.source_labels = Array.from(
+        new Set(loadedItems.map((e) => e.source_label || e.service).filter(Boolean))
+      );
+    } else {
+      setEvidenceList([]);
+      setSelectedEvidence(null);
+    }
+
+    setCurrentScenario("custom");
+    setCanvasState(nextState);
+    setSourceFilter("ALL");
+    setSeverityFilter("ALL");
+    setSearchQuery("");
+    setReplayIndex(0);
+    setMessages([
+      {
+        id: `msg-custom-${Date.now()}`,
+        role: "assistant",
+        content:
+          `Started custom investigation **${nextState.incident_title}**` +
+          (payload.projectName ? ` (${payload.projectName})` : "") +
+          ` with **${payload.sources.length}** log source(s). Ask me to analyze error patterns, correlate services, or propose a remediation plan.`,
+        timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      },
+    ]);
+    showToast("Custom investigation created");
+  };
+
+  // Remove a single log source from the active investigation
+  const handleRemoveSource = async (sourceLabel: string) => {
+    if (backendOnline) {
+      const { sid, token } = await ensureSession();
+      const res = await fetch(
+        `${BACKEND_URL}/api/evidence/source/${encodeURIComponent(sourceLabel)}?session_id=${sid}`,
+        {
+          method: "DELETE",
+          credentials: "include",
+          headers: authHeaders(token),
+        }
+      );
+      if (res.ok) {
+        const evRes = await fetch(`${BACKEND_URL}/api/evidence?session_id=${sid}&limit=200`, {
+          credentials: "include",
+          headers: authHeaders(token),
+        });
+        const remaining: EvidenceItem[] = evRes.ok ? await evRes.json() : [];
+        setEvidenceList(remaining);
+        setSelectedEvidence(remaining[0] || null);
+      }
+    } else {
+      const remaining = evidenceList.filter(
+        (e) => (e.source_label || e.service).toLowerCase() !== sourceLabel.toLowerCase()
+      );
+      setEvidenceList(remaining);
+      setSelectedEvidence(remaining[0] || null);
+    }
+    setSourceFilter("ALL");
+    showToast(`Removed source ${sourceLabel}`);
+  };
+
+  // Switch active session provider among server-configured options
+  const handleSelectProvider = async (providerId: string) => {
+    if (!backendOnline) return;
+    const { token } = await ensureSession();
+    const res = await fetch(`${BACKEND_URL}/api/investigation/provider`, {
+      method: "POST",
+      credentials: "include",
+      headers: authHeaders(token, { "Content-Type": "application/json" }),
+      body: JSON.stringify({ provider: providerId }),
+    });
+    if (res.ok) {
+      const updatedCatalog: ProviderCatalog = await res.json();
+      setProviderCatalog(updatedCatalog);
+      setAiMode(updatedCatalog.ai_configured ? "live" : "demo");
+      showToast(`Switched AI provider to ${updatedCatalog.active_provider}`);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen w-screen bg-[#060908] text-foreground overflow-hidden font-sans">
       {/* Workspace Header */}
@@ -812,7 +995,10 @@ function WorkspaceContent() {
         canvasState={canvasState}
         stateSyncSuccess={stateSyncSuccess}
         currentScenario={currentScenario}
+        providerCatalog={providerCatalog}
         onScenarioChange={setCurrentScenario}
+        onNewCustomInvestigation={() => setShowCustomModal(true)}
+        onOpenProviderSettings={() => setShowProviderModal(true)}
         onResetInvestigation={handleResetInvestigation}
         onOpenPostmortem={handleOpenPostmortem}
       />
@@ -930,9 +1116,12 @@ function WorkspaceContent() {
               evidenceList={evidenceList}
               searchQuery={searchQuery}
               severityFilter={severityFilter}
+              sourceFilter={sourceFilter}
               selectedEvidence={selectedEvidence}
               onSearchChange={setSearchQuery}
               onSeverityChange={setSeverityFilter}
+              onSourceChange={setSourceFilter}
+              onRemoveSource={handleRemoveSource}
               onSelectEvidence={setSelectedEvidence}
               onCitationClick={handleCitationClick}
             />
@@ -957,6 +1146,21 @@ function WorkspaceContent() {
         isCopied={isCopied}
         onCopy={handleCopyPostmortem}
         onClose={() => setShowPostmortem(false)}
+      />
+
+      {/* Custom Investigation Modal */}
+      <CustomInvestigationModal
+        isOpen={showCustomModal}
+        onClose={() => setShowCustomModal(false)}
+        onSubmit={handleCreateCustomInvestigation}
+      />
+
+      {/* AI Provider Settings Modal */}
+      <ProviderSettingsModal
+        isOpen={showProviderModal}
+        catalog={providerCatalog}
+        onSelectProvider={handleSelectProvider}
+        onClose={() => setShowProviderModal(false)}
       />
 
       {/* Restrained Action Toast */}

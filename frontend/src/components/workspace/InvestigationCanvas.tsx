@@ -96,6 +96,7 @@ export function InvestigationCanvas({
               onChange={(e) => onUpdateCanvasState({ severity: e.target.value })}
               className="w-full bg-[#070B09] border border-white/[0.1] rounded-lg px-2.5 py-2 text-xs text-foreground font-mono focus:outline-none focus:border-accent/80 focus:ring-1 focus:ring-accent/40 transition-colors cursor-pointer"
             >
+              <option value="UNKNOWN">UNKNOWN</option>
               <option value="CRITICAL">CRITICAL</option>
               <option value="HIGH">HIGH</option>
               <option value="MEDIUM">MEDIUM</option>

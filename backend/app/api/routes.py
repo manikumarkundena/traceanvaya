@@ -7,6 +7,11 @@ from pydantic import ValidationError
 from pydantic_ai.ui.ag_ui import AGUIAdapter
 from pydantic_ai.ui import StateDeps
 from app.agents.incident_agent import investigation_agent
+from app.agents.provider_factory import (
+    create_agent_model,
+    get_provider_catalog,
+    is_provider_configured,
+)
 from app.core.config import settings
 from app.core.security import (
     ai_guard,
@@ -17,11 +22,13 @@ from app.core.security import (
     verify_session_token,
 )
 from app.schemas.incident import (
+    CustomInvestigationRequest,
     EvidenceItem,
     IngestLogRequest,
     IngestResponse,
     InvestigationState,
     PostmortemReport,
+    ProviderSelectionRequest,
 )
 from app.services.evidence_store import evidence_store
 from app.services.log_parser import LogParser
@@ -73,15 +80,55 @@ SCENARIOS_DIR = os.path.join(os.path.dirname(BASE_DIR), "scenarios")
 
 @router.get("/health")
 async def health_check():
+    catalog = get_provider_catalog()
     return {
         "status": "healthy",
         "service": "traceanvaya-backend",
-        "ai_provider": settings.AI_PROVIDER,
-        "ai_model": settings.AI_MODEL,
-        "ai_configured": bool(settings.GEMINI_API_KEY or settings.OPENAI_API_KEY),
+        "ai_provider": catalog["active_provider"],
+        "ai_model": catalog["active_model"],
+        "ai_mode": catalog["mode"],
+        "ai_configured": catalog["ai_configured"],
         "environment": settings.ENVIRONMENT,
         "timestamp": datetime.now(timezone.utc).isoformat()
     }
+
+
+@router.get("/providers")
+async def list_providers(request: Request):
+    token = _extract_token(request)
+    sid = verify_session_token(token) if token else None
+    session_provider = evidence_store.get_session_provider(sid) if sid else None
+    return get_provider_catalog(session_provider)
+
+
+@router.post("/investigation/provider")
+async def select_session_provider(payload: ProviderSelectionRequest, request: Request):
+    authorized_sid = _resolve_authorized_session(request)
+    pid = payload.provider.strip().lower()
+    if pid not in ("gemini", "openai", "ollama"):
+        raise HTTPException(status_code=400, detail=f"Unsupported provider '{pid}'.")
+    if not is_provider_configured(pid):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Provider '{pid}' is not configured on this server.",
+        )
+    evidence_store.set_session_provider(authorized_sid, pid)
+    return get_provider_catalog(pid)
+
+
+@router.post("/investigations/custom", response_model=InvestigationState)
+async def create_custom_investigation(payload: CustomInvestigationRequest, request: Request):
+    authorized_sid = _resolve_authorized_session(request)
+    if not payload.incident_title.strip():
+        raise HTTPException(status_code=400, detail="Incident title is required.")
+    return evidence_store.create_custom_investigation(
+        session_id=authorized_sid,
+        project_name=payload.project_name,
+        incident_title=payload.incident_title,
+        incident_description=payload.incident_description,
+        affected_service=payload.affected_service,
+        severity=payload.severity,
+    )
 
 
 @router.post("/sessions/init")
@@ -193,21 +240,35 @@ async def run_agent(request: Request) -> Response:
 
     state_deps = StateDeps(state=current_state)
     adapter = AGUIAdapter(agent=investigation_agent, run_input=run_input, accept=accept)
-    raw_stream = adapter.run_stream(deps=state_deps)
+    session_provider = evidence_store.get_session_provider(session_id)
 
     async def stream_with_state():
         from ag_ui.core import EventType, StateSnapshotEvent
 
         try:
-            async for event in raw_stream:
-                evt_type = getattr(event, "type", None)
-                if evt_type == EventType.RUN_FINISHED or evt_type == "RUN_FINISHED":
-                    evidence_store.update_state(session_id, state_deps.state)
-                    yield StateSnapshotEvent(
-                        type=EventType.STATE_SNAPSHOT,
-                        snapshot=state_deps.state.model_dump(),
-                    )
-                yield event
+            if session_provider:
+                with investigation_agent.override(model=create_agent_model(session_provider)):
+                    raw_stream = adapter.run_stream(deps=state_deps)
+                    async for event in raw_stream:
+                        evt_type = getattr(event, "type", None)
+                        if evt_type == EventType.RUN_FINISHED or evt_type == "RUN_FINISHED":
+                            evidence_store.update_state(session_id, state_deps.state)
+                            yield StateSnapshotEvent(
+                                type=EventType.STATE_SNAPSHOT,
+                                snapshot=state_deps.state.model_dump(),
+                            )
+                        yield event
+            else:
+                raw_stream = adapter.run_stream(deps=state_deps)
+                async for event in raw_stream:
+                    evt_type = getattr(event, "type", None)
+                    if evt_type == EventType.RUN_FINISHED or evt_type == "RUN_FINISHED":
+                        evidence_store.update_state(session_id, state_deps.state)
+                        yield StateSnapshotEvent(
+                            type=EventType.STATE_SNAPSHOT,
+                            snapshot=state_deps.state.model_dump(),
+                        )
+                    yield event
         finally:
             ai_guard.release_ai_slot(session_id)
 
@@ -264,7 +325,8 @@ async def get_scenario_evidence(scenario_id: str, request: Request, session_id: 
 async def upload_evidence_file(
     request: Request,
     file: UploadFile = File(...),
-    session_id: Optional[str] = None
+    session_id: Optional[str] = None,
+    source_label: Optional[str] = None,
 ):
     authorized_sid = _resolve_authorized_session(request, session_id)
 
@@ -274,7 +336,7 @@ async def upload_evidence_file(
     if ext not in allowed_exts:
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file type '{ext}'. Please upload .log, .txt, or .json files."
+            detail=f"Unsupported file type '{ext}'. Please upload .log, .txt, .json, or .jsonl files."
         )
 
     # Enforce 10MB limit via chunked read before full buffering
@@ -293,8 +355,20 @@ async def upload_evidence_file(
         chunks.append(chunk)
 
     content = b"".join(chunks).decode("utf-8", errors="replace")
-    items = LogParser.parse_log_content(content, session_id=authorized_sid)
-    evidence_store.store_evidence(authorized_sid, items)
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Uploaded log file is empty.")
+
+    start_idx = evidence_store.next_evidence_start_index(authorized_sid)
+    items = LogParser.parse_log_content(
+        content,
+        session_id=authorized_sid,
+        source_label=source_label,
+        start_index=start_idx,
+    )
+    if not items:
+        raise HTTPException(status_code=400, detail="No valid log records found in uploaded file.")
+
+    all_items = evidence_store.store_evidence(authorized_sid, items)
 
     # Tally metrics
     services = list({e.service for e in items})
@@ -305,9 +379,9 @@ async def upload_evidence_file(
         if e.is_anomaly:
             anomalies += 1
 
-    # Update state notes
+    # Update state metadata (avoid polluting findings with synthetic boilerplate)
     state = evidence_store.get_or_create_state(authorized_sid)
-    state.findings.append(f"Ingested log file '{file.filename}' with {len(items)} records ({anomalies} anomalies).")
+    state.source_labels = sorted({e.source_label or e.service for e in all_items})
     evidence_store.update_state(authorized_sid, state)
 
     return IngestResponse(
@@ -315,7 +389,8 @@ async def upload_evidence_file(
         total_parsed=len(items),
         anomalies_detected=anomalies,
         services=services,
-        severity_breakdown=severities
+        severity_breakdown=severities,
+        source_label=source_label,
     )
 
 
@@ -328,8 +403,23 @@ async def ingest_raw_evidence(request: Request):
         raise HTTPException(status_code=422, detail=e.errors())
 
     authorized_sid = _resolve_authorized_session(request, payload.session_id)
-    items = LogParser.parse_log_content(payload.raw_content, session_id=authorized_sid)
-    evidence_store.store_evidence(authorized_sid, items)
+    if not payload.raw_content.strip():
+        raise HTTPException(status_code=400, detail="Log content cannot be empty.")
+
+    start_idx = evidence_store.next_evidence_start_index(authorized_sid)
+    items = LogParser.parse_log_content(
+        payload.raw_content,
+        session_id=authorized_sid,
+        source_label=payload.source_label,
+        start_index=start_idx,
+    )
+    if not items:
+        raise HTTPException(status_code=400, detail="No valid log lines found in pasted content.")
+
+    all_items = evidence_store.store_evidence(authorized_sid, items)
+    state = evidence_store.get_or_create_state(authorized_sid)
+    state.source_labels = sorted({e.source_label or e.service for e in all_items})
+    evidence_store.update_state(authorized_sid, state)
 
     services = list({e.service for e in items})
     severities: Dict[str, int] = {}
@@ -344,8 +434,20 @@ async def ingest_raw_evidence(request: Request):
         total_parsed=len(items),
         anomalies_detected=anomalies,
         services=services,
-        severity_breakdown=severities
+        severity_breakdown=severities,
+        source_label=payload.source_label,
     )
+
+
+@router.delete("/evidence/source/{source_label}")
+async def remove_evidence_source(source_label: str, request: Request, session_id: Optional[str] = None):
+    authorized_sid = _resolve_authorized_session(request, session_id)
+    remaining = evidence_store.remove_source_evidence(authorized_sid, source_label)
+    return {
+        "status": "removed",
+        "source_label": source_label,
+        "remaining_evidence": len(remaining),
+    }
 
 
 @router.get("/evidence", response_model=List[EvidenceItem])
@@ -355,6 +457,7 @@ async def list_evidence(
     query: Optional[str] = None,
     severity: Optional[str] = None,
     service: Optional[str] = None,
+    source_label: Optional[str] = None,
     limit: int = 100
 ):
     authorized_sid = _resolve_authorized_session(request, session_id)
@@ -363,6 +466,7 @@ async def list_evidence(
         query=query,
         severity=severity,
         service=service,
+        source_label=source_label,
         limit=limit
     )
 

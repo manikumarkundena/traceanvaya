@@ -1,14 +1,17 @@
 import React from "react";
 import Link from "next/link";
-import { Check, FileText, RotateCcw } from "lucide-react";
+import { Check, Cpu, FileText, FolderPlus, RotateCcw } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
-import { InvestigationState } from "./types";
+import { InvestigationState, ProviderCatalog } from "./types";
 
 interface WorkspaceHeaderProps {
   canvasState: InvestigationState;
   stateSyncSuccess: boolean;
   currentScenario: string;
+  providerCatalog?: ProviderCatalog | null;
   onScenarioChange: (scenario: string) => void;
+  onNewCustomInvestigation: () => void;
+  onOpenProviderSettings: () => void;
   onResetInvestigation: () => void;
   onOpenPostmortem: () => void;
 }
@@ -32,10 +35,19 @@ export function WorkspaceHeader({
   canvasState,
   stateSyncSuccess,
   currentScenario,
+  providerCatalog,
   onScenarioChange,
+  onNewCustomInvestigation,
+  onOpenProviderSettings,
   onResetInvestigation,
   onOpenPostmortem,
 }: WorkspaceHeaderProps) {
+  const providerBadgeText =
+    providerCatalog?.mode === "live"
+      ? `Live: ${providerCatalog.active_provider}`
+      : providerCatalog?.mode === "local_ollama"
+      ? "Local Ollama"
+      : "Demo Mode";
   return (
     <header className="h-14 border-b border-white/[0.08] bg-[#0B110E] flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-20">
       <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -77,6 +89,28 @@ export function WorkspaceHeader({
             <Check className="w-3 h-3" /> Saved
           </span>
         )}
+
+        {/* Provider indicator */}
+        <button
+          type="button"
+          onClick={onOpenProviderSettings}
+          title="AI provider settings"
+          className="hidden md:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-mono bg-[#111915] border border-white/[0.1] hover:border-accent/40 text-zinc-200 transition-colors"
+        >
+          <Cpu className="w-3 h-3 text-accent" />
+          <span>{providerBadgeText}</span>
+        </button>
+
+        {/* New custom investigation */}
+        <button
+          type="button"
+          onClick={onNewCustomInvestigation}
+          title="Investigate your own incident"
+          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-accent/15 border border-accent/35 hover:bg-accent/25 text-accent transition-all duration-150 active:scale-[0.98] font-sans focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+        >
+          <FolderPlus className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">New Investigation</span>
+        </button>
 
         {/* Scenario selector */}
         <select
