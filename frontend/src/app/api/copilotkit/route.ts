@@ -6,6 +6,9 @@ import {
 } from "@copilotkit/runtime";
 import { HttpAgent } from "@ag-ui/client";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 // Initialize CopilotRuntime with AG-UI HttpAgent pointing to FastAPI Pydantic AI backend
 const backendAgentUrl =
   process.env.BACKEND_AGENT_URL ||

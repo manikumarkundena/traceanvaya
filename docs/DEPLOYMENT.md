@@ -12,17 +12,20 @@ This guide covers deploying TraceAnvaya to production using:
 
 1. Create a PostgreSQL project on Neon.
 2. Copy the connection string (for example: `postgresql://user:pass@ep-xyz.us-east-2.aws.neon.tech/traceanvaya?sslmode=require`).
-3. TraceAnvaya's `backend/app/core/config.py` automatically normalizes `postgres://` and `postgresql://` URLs to `postgresql+asyncpg://` for SQLAlchemy AsyncIO.
+3. TraceAnvaya's `backend/app/core/config.py` automatically normalizes `postgres://` and `postgresql://` URLs to `postgresql+asyncpg://` and converts `sslmode=require` to `ssl=require` for SQLAlchemy AsyncIO + `asyncpg`.
 4. Run Alembic migrations against the production database from `backend/`:
    ```bash
-   DATABASE_URL="postgresql+asyncpg://user:pass@ep-xyz.us-east-2.aws.neon.tech/traceanvaya" alembic upgrade head
+   DATABASE_URL="postgresql://user:pass@ep-xyz.us-east-2.aws.neon.tech/traceanvaya?sslmode=require" alembic upgrade head
    ```
 
 ---
 
 ## 2. Backend Service (Render / Railway)
 
+A Render Blueprint is provided at the repository root in `render.yaml`.
+
 - **Root Directory**: `backend`
+- **Python Version**: `3.12.8` (`PYTHON_VERSION=3.12.8`)
 - **Build Command**: `pip install -r requirements.txt`
 - **Start Command**: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 - **Health Check Path**: `/api/health`

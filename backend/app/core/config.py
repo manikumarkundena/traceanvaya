@@ -34,11 +34,27 @@ class Settings(BaseSettings):
     @property
     def async_database_url(self) -> str:
         """Normalize managed PostgreSQL URLs (Neon/Render/Railway) for SQLAlchemy asyncpg."""
+        from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
+
         url = self.DATABASE_URL.strip()
         if url.startswith("postgres://"):
             url = "postgresql+asyncpg://" + url[len("postgres://"):]
         elif url.startswith("postgresql://") and "+asyncpg" not in url:
             url = "postgresql+asyncpg://" + url[len("postgresql://"):]
+
+        if url.startswith("postgresql+asyncpg://") and "?" in url:
+            parsed = urlparse(url)
+            params = []
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True):
+                if key == "sslmode":
+                    if value in ("require", "verify-ca", "verify-full"):
+                        params.append(("ssl", "require"))
+                elif key == "channel_binding":
+                    continue
+                else:
+                    params.append((key, value))
+            url = urlunparse(parsed._replace(query=urlencode(params)))
+
         return url
 
 

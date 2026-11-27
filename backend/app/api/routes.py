@@ -69,7 +69,12 @@ async def run_agent(request: Request) -> Response:
     and streams AG-UI protocol events (RUN_STARTED, TEXT_DELTA, TOOL_CALL_START, STATE_UPDATE, etc.)
     back to CopilotKit or any AG-UI compliant client.
     """
-    client_ip = request.client.host if request.client else "unknown"
+    forwarded_for = request.headers.get("x-forwarded-for", "")
+    client_ip = (
+        forwarded_for.split(",")[0].strip()
+        if forwarded_for
+        else (request.client.host if request.client else "unknown")
+    )
     if not _check_rate_limit(client_ip):
         return Response(
             content=json.dumps({"error": "Rate limit exceeded. Please wait before retrying."}),
