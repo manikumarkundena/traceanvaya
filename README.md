@@ -34,6 +34,8 @@ TraceAnvaya is a full-stack AI incident investigation workspace built with **Nex
 
 ## Why TraceAnvaya?
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:071B24,100:0F766E&amp;height=66&amp;text=01%20%2F%20The%20Vision&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="01 / The Vision" width="100%" />
+
 When a failure spans multiple services, the evidence is often scattered across logs, timestamps and error messages. TraceAnvaya brings those pieces into one interactive workspace, where an agent can retrieve evidence, maintain investigation context and propose next steps while the engineer remains in control.
 
 | Investigation challenge | TraceAnvaya approach |
@@ -59,6 +61,8 @@ When a failure spans multiple services, the evidence is often scattered across l
 
 ## How it works
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:0F766E,100:0369A1&amp;height=66&amp;text=02%20%2F%20Investigation%20Workflow&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="02 / Investigation Workflow" width="100%" />
+
 ```mermaid
 flowchart TD
     A["01 · Choose scenario or upload logs"] --> B["02 · Parse and redact"]
@@ -78,6 +82,8 @@ flowchart TD
 **Try it in two minutes:** open the workspace, load Database Connection Pool Exhaustion, ask "What caused this incident? Cite the relevant evidence", inspect the citations and timeline, then review a proposed remediation and export a postmortem. On the hosted free tier, allow time for the backend to wake up.
 
 ## Product tour
+
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:0369A1,100:4338CA&amp;height=66&amp;text=03%20%2F%20Product%20Experience&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="03 / Product Experience" width="100%" />
 
 ### Core capabilities
 
@@ -114,6 +120,8 @@ flowchart TD
 ---
 
 ## Architecture & Shared-State Flow
+
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:4338CA,100:7C3AED&amp;height=66&amp;text=04%20%2F%20System%20Architecture&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="04 / System Architecture" width="100%" />
 
 The architecture separates the presentation layer, agent transport, investigation logic and data handling. CopilotKit connects the React workspace to Pydantic AI through AG-UI; REST endpoints complement the stream for explicit user actions.
 
@@ -206,6 +214,8 @@ sequenceDiagram
 
 ## Technology Stack
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:312E81,100:0F766E&amp;height=66&amp;text=05%20%2F%20Technology%20Stack&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="05 / Technology Stack" width="100%" />
+
 | Layer | Technologies |
 | :--- | :--- |
 | **Frontend** | Next.js `15.1.7` (App Router), React `19.0.0`, TypeScript `5.7.3`, Tailwind CSS `3.4.17`, Motion `12.4.7` |
@@ -218,6 +228,8 @@ sequenceDiagram
 ---
 
 ## Local Setup
+
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:0F766E,100:047857&amp;height=66&amp;text=06%20%2F%20Getting%20Started&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="06 / Getting Started" width="100%" />
 
 ### Prerequisites
 - **Node.js**: 20+ & npm
@@ -261,6 +273,8 @@ Open [http://localhost:3000](http://localhost:3000) for the landing page, or [ht
 
 ## Environment Variables
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:134E4A,100:0369A1&amp;height=66&amp;text=07%20%2F%20Configuration&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="07 / Configuration" width="100%" />
+
 | Scope | Variable | Secret | Required | Format / Example |
 | :--- | :--- | :---: | :---: | :--- |
 | **Backend** | `ENVIRONMENT` | No | Yes | `development` or `production` |
@@ -288,6 +302,8 @@ Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `DATABASE_URL` in `NEXT_PUBL
 
 ## Live AI, Optional Providers & Deterministic Demo Mode
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:4338CA,100:7C3AED&amp;height=66&amp;text=08%20%2F%20AI%20Providers&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="08 / AI Providers" width="100%" />
+
 TraceAnvaya supports three server-configured model providers and a deterministic demo mode (credentials and base URLs are never exposed to the browser):
 
 1. **Google Gemini (Default Hosted Provider — Live-Verified)**:
@@ -305,6 +321,8 @@ TraceAnvaya supports three server-configured model providers and a deterministic
 
 ## Investigating Your Own Logs
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:0369A1,100:0F766E&amp;height=66&amp;text=09%20%2F%20Custom%20Investigations&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="09 / Custom Investigations" width="100%" />
+
 Click **New Investigation** in the workspace (or open `/workspace?new=1`) to create a genuinely empty custom investigation with zero preloaded demo logs:
 
 - **Supported Formats**: `.log`, `.txt`, `.json`, `.jsonl` (up to `10 MB` upload / `2 MB` paste).
@@ -317,6 +335,8 @@ Click **New Investigation** in the workspace (or open `/workspace?new=1`) to cre
 
 ## Engineering highlights
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:0F766E,100:4338CA&amp;height=66&amp;text=10%20%2F%20Engineering%20Decisions&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="10 / Engineering Decisions" width="100%" />
+
 | Decision | Rationale |
 | --- | --- |
 | Typed Pydantic AI tools | Explicit tool inputs and structured investigation state |
@@ -327,6 +347,8 @@ Click **New Investigation** in the workspace (or open `/workspace?new=1`) to cre
 | Provider abstraction | Separate model configuration from investigation logic |
 
 ## Testing & Verification
+
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:065F46,100:0E7490&amp;height=66&amp;text=11%20%2F%20Quality%20and%20Testing&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="11 / Quality and Testing" width="100%" />
 
 ### Backend Tests (Pytest)
 ```bash
@@ -352,11 +374,15 @@ npx playwright test tests/live-ai.spec.ts
 
 ## Production Deployment
 
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:1E3A8A,100:4338CA&amp;height=66&amp;text=12%20%2F%20Deployment&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="12 / Deployment" width="100%" />
+
 TraceAnvaya is pre-configured for **Vercel** (frontend), **Render** (backend via [render.yaml](render.yaml)), and **Neon** (managed PostgreSQL). See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for step-by-step instructions.
 
 ---
 
 ## Safety Boundaries & Known Limitations
+
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:78350F,100:92400E&amp;height=66&amp;text=13%20%2F%20Safety%20and%20Boundaries&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="13 / Safety and Boundaries" width="100%" />
 
 - **Simulated Remediation Only**: Approving or rejecting a remediation plan records an operator decision in the audit trail (`APPROVED` / `REJECTED`) and never executes shell commands or modifies live infrastructure.
 - **Hosting Cold Starts (Render Free Tier)**: The hosted backend on Render spins down after periods of inactivity; the first request after idle time may take 30–50+ seconds while the container wakes up.
@@ -367,6 +393,8 @@ TraceAnvaya is pre-configured for **Vercel** (frontend), **Render** (backend via
 ---
 
 ## Documentation
+
+<img src="https://capsule-render.vercel.app/api?type=rect&amp;color=0:312E81,100:0F766E&amp;height=66&amp;text=14%20%2F%20Developer%20Resources&amp;fontSize=23&amp;fontColor=FFFFFF&amp;fontAlignY=52" alt="14 / Developer Resources" width="100%" />
 
 - [Deployment Guide](docs/DEPLOYMENT.md) — Vercel, Render, Neon PostgreSQL, and Docker Compose setup.
 - [Developer Handover Guide](docs/DEVELOPER_GUIDE.md) — Folder structure, AG-UI data flow, and troubleshooting.
