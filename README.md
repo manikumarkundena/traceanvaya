@@ -1,10 +1,12 @@
 <div align="center">
 
+<img src="https://capsule-render.vercel.app/api?type=waving&amp;color=0:071B24,45:0F766E,100:4338CA&amp;height=190&amp;section=header&amp;text=TraceAnvaya&amp;fontSize=56&amp;fontColor=FFFFFF&amp;animation=fadeIn&amp;fontAlignY=40&amp;desc=Trace%20the%20failure.%20Connect%20the%20evidence.&amp;descSize=17&amp;descAlignY=67" alt="TraceAnvaya — Trace the failure. Connect the evidence." width="100%" />
+
 # TraceAnvaya
 
 ### Agentic Incident Investigation & Replay Platform
 
-*Trace the failure. Connect the evidence.*
+**From scattered logs to a connected investigation.**
 
 ![Next.js](https://img.shields.io/badge/Next.js-15-111827?logo=nextdotjs)
 ![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
@@ -14,7 +16,10 @@
 ![CopilotKit](https://img.shields.io/badge/CopilotKit-Runtime-0D9488)
 [![CI](https://github.com/manikumarkundena/traceanvaya/actions/workflows/ci.yml/badge.svg)](https://github.com/manikumarkundena/traceanvaya/actions/workflows/ci.yml)
 
-**[Launch workspace](https://traceanvaya.vercel.app/workspace) · [Architecture](#architecture--shared-state-flow) · [Local setup](#local-setup) · [Documentation](#documentation)**
+[![Live application](https://img.shields.io/badge/EXPLORE-Live_Application-0F766E?style=for-the-badge&logo=vercel&logoColor=white)](https://traceanvaya.vercel.app)
+[![Workspace](https://img.shields.io/badge/OPEN-Investigation_Workspace-4338CA?style=for-the-badge)](https://traceanvaya.vercel.app/workspace)
+
+**[Product tour](#product-tour) · [Architecture](#architecture--shared-state-flow) · [Local setup](#local-setup) · [Documentation](#documentation)**
 
 </div>
 
@@ -23,20 +28,45 @@
 
 TraceAnvaya is a full-stack AI incident investigation workspace built with **Next.js 15**, **CopilotKit**, **AG-UI**, and **Pydantic AI**. It helps software engineers and SREs investigate software failures by correlating application logs, surfacing evidence-backed findings, replaying incident timelines, and reviewing remediation plans before approval.
 
-![TraceAnvaya Landing Page](screenshots/final/landing-1440x900-viewport.png)
+<p align="center">
+  <img src="screenshots/final/landing-1440x900-viewport.png" alt="TraceAnvaya landing page" width="100%" />
+</p>
+
+## Why TraceAnvaya?
+
+When a failure spans multiple services, the evidence is often scattered across logs, timestamps and error messages. TraceAnvaya brings those pieces into one interactive workspace, where an agent can retrieve evidence, maintain investigation context and propose next steps while the engineer remains in control.
+
+| Investigation challenge | TraceAnvaya approach |
+| --- | --- |
+| Scattered logs across services | Source-labelled evidence and trace correlation |
+| Unstructured AI answers | Evidence citations, findings and hypotheses |
+| Lost investigation context | Bidirectional shared state |
+| Unclear sequence of failures | Chronological incident replay |
+| Risky automated fixes | Human-reviewed, simulated remediation |
+| Manual incident documentation | Exportable Markdown postmortem |
+
+> **Design principle:** AI assists the investigation; the engineer owns the decision.
+
+<div align="center">
+
+| **8** | **3** | **26** |
+| :---: | :---: | :---: |
+| Registered agent tools | Synthetic incident scenarios | Backend tests reported passing at submission |
+
+</div>
 
 ---
 
 ## How it works
 
 ```mermaid
-flowchart LR
-    A["Choose scenario or upload logs"] --> B["Parse and redact"]
-    B --> C["Search and correlate evidence"]
-    C --> D["Review findings and hypotheses"]
-    D --> E["Replay incident timeline"]
-    E --> F["Review proposed remediation"]
-    F --> G["Export postmortem"]
+flowchart TD
+    A["01 · Choose scenario or upload logs"] --> B["02 · Parse and redact"]
+    B --> C["03 · Search and correlate evidence"]
+    C --> D["04 · Review findings and hypotheses"]
+    D --> E["05 · Replay incident timeline"]
+    E --> F["06 · Review proposed remediation"]
+    F --> G["07 · Export postmortem"]
     classDef input fill:#0f766e,stroke:#2dd4bf,color:#ffffff
     classDef analysis fill:#1d4ed8,stroke:#60a5fa,color:#ffffff
     classDef review fill:#6d28d9,stroke:#a78bfa,color:#ffffff
@@ -47,7 +77,9 @@ flowchart LR
 
 **Try it in two minutes:** open the workspace, load Database Connection Pool Exhaustion, ask "What caused this incident? Cite the relevant evidence", inspect the citations and timeline, then review a proposed remediation and export a postmortem. On the hosted free tier, allow time for the backend to wake up.
 
-## Core Capabilities
+## Product tour
+
+### Core capabilities
 
 - **Incident Investigator Chat**: Streams responses over AG-UI SSE with safe Markdown rendering, clickable `[ev-XXX]` citations, suggested prompts, and `.log` / `.txt` / `.json` log upload (up to 10 MB with automatic secret redaction).
 - **Bidirectional Shared State (`Overview`)**: Editable incident title, severity, and affected service synchronized with the backend, alongside Findings, Root-cause hypotheses, Supporting evidence, and Remediation review.
@@ -65,6 +97,12 @@ flowchart LR
 
 ### Workspace in action
 
+<p align="center">
+  <img src="screenshots/final/workspace-active-investigation.png" alt="Active investigation with chat and shared-state canvas" width="100%" />
+</p>
+
+*The investigation workspace combines conversational analysis with structured evidence, hypotheses and operator decisions.*
+
 | Evidence explorer | Incident replay |
 | :---: | :---: |
 | ![Evidence explorer](screenshots/final/workspace-evidence-explorer.png) | ![Incident replay](screenshots/final/workspace-replay-timeline.png) |
@@ -76,6 +114,8 @@ flowchart LR
 ---
 
 ## Architecture & Shared-State Flow
+
+The architecture separates the presentation layer, agent transport, investigation logic and data handling. CopilotKit connects the React workspace to Pydantic AI through AG-UI; REST endpoints complement the stream for explicit user actions.
 
 ```mermaid
 flowchart TD
@@ -275,6 +315,17 @@ Click **New Investigation** in the workspace (or open `/workspace?new=1`) to cre
 
 ---
 
+## Engineering highlights
+
+| Decision | Rationale |
+| --- | --- |
+| Typed Pydantic AI tools | Explicit tool inputs and structured investigation state |
+| SSE with AG-UI events | Incremental text, tool activity and state synchronization |
+| Hybrid REST + agent state | Explicit user edits and evidence operations alongside agent updates |
+| Bounded Markdown parsing and batched rendering | Avoid unbounded parsing and excessive updates during streaming |
+| Signed anonymous sessions | Isolate visitor investigations without requiring account creation |
+| Provider abstraction | Separate model configuration from investigation logic |
+
 ## Testing & Verification
 
 ### Backend Tests (Pytest)
@@ -322,3 +373,15 @@ TraceAnvaya is pre-configured for **Vercel** (frontend), **Render** (backend via
 - [Architecture Blueprint](docs/ARCHITECTURE.md)
 - [AG-UI Protocol Specification](docs/AGENT_PROTOCOL.md)
 - [Design Decisions](docs/DESIGN_DECISIONS.md)
+
+---
+
+<div align="center">
+
+**TraceAnvaya** · Evidence first. Human decisions always.
+
+[Live application](https://traceanvaya.vercel.app) · [Workspace](https://traceanvaya.vercel.app/workspace) · [Source code](https://github.com/manikumarkundena/traceanvaya)
+
+<img src="https://capsule-render.vercel.app/api?type=waving&amp;color=0:4338CA,55:0F766E,100:071B24&amp;height=95&amp;section=footer" alt="" width="100%" />
+
+</div>
