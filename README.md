@@ -1,6 +1,22 @@
+<div align="center">
+
 # TraceAnvaya
 
-**Agentic Incident Investigation & Replay Platform**
+### Agentic Incident Investigation & Replay Platform
+
+*Trace the failure. Connect the evidence.*
+
+![Next.js](https://img.shields.io/badge/Next.js-15-111827?logo=nextdotjs)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?logo=fastapi&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-Frontend-3178C6?logo=typescript&logoColor=white)
+![Pydantic AI](https://img.shields.io/badge/Pydantic_AI-Agent-9333EA)
+![AG--UI](https://img.shields.io/badge/AG--UI-Streaming-2563EB)
+![CopilotKit](https://img.shields.io/badge/CopilotKit-Runtime-0D9488)
+[![CI](https://github.com/manikumarkundena/traceanvaya/actions/workflows/ci.yml/badge.svg)](https://github.com/manikumarkundena/traceanvaya/actions/workflows/ci.yml)
+
+**[Launch workspace](https://traceanvaya.vercel.app/workspace) · [Architecture](#architecture--shared-state-flow) · [Local setup](#local-setup) · [Documentation](#documentation)**
+
+</div>
 
 - **Live App (Vercel)**: [https://traceanvaya.vercel.app](https://traceanvaya.vercel.app) ([Open Workspace](https://traceanvaya.vercel.app/workspace))
 - **Live Backend API (Render)**: [https://traceanvaya.onrender.com](https://traceanvaya.onrender.com) ([Health Check](https://traceanvaya.onrender.com/api/health))
@@ -10,6 +26,26 @@ TraceAnvaya is a full-stack AI incident investigation workspace built with **Nex
 ![TraceAnvaya Landing Page](screenshots/final/landing-1440x900-viewport.png)
 
 ---
+
+## How it works
+
+```mermaid
+flowchart LR
+    A["Choose scenario or upload logs"] --> B["Parse and redact"]
+    B --> C["Search and correlate evidence"]
+    C --> D["Review findings and hypotheses"]
+    D --> E["Replay incident timeline"]
+    E --> F["Review proposed remediation"]
+    F --> G["Export postmortem"]
+    classDef input fill:#0f766e,stroke:#2dd4bf,color:#ffffff
+    classDef analysis fill:#1d4ed8,stroke:#60a5fa,color:#ffffff
+    classDef review fill:#6d28d9,stroke:#a78bfa,color:#ffffff
+    class A,B input
+    class C,D,E analysis
+    class F,G review
+```
+
+**Try it in two minutes:** open the workspace, load Database Connection Pool Exhaustion, ask "What caused this incident? Cite the relevant evidence", inspect the citations and timeline, then review a proposed remediation and export a postmortem. On the hosted free tier, allow time for the backend to wake up.
 
 ## Core Capabilities
 
@@ -27,33 +63,104 @@ TraceAnvaya is a full-stack AI incident investigation workspace built with **Nex
 | :---: | :---: | :---: |
 | ![Live Investigation](screenshots/live-verification/live-1-investigation.png) | ![State Sync](screenshots/live-verification/live-2-state-sync-and-remediation.png) | ![Postmortem Studio](screenshots/live-verification/live-3-postmortem.png) |
 
+### Workspace in action
+
+| Evidence explorer | Incident replay |
+| :---: | :---: |
+| ![Evidence explorer](screenshots/final/workspace-evidence-explorer.png) | ![Incident replay](screenshots/final/workspace-replay-timeline.png) |
+
+| Remediation review | Postmortem studio |
+| :---: | :---: |
+| ![Remediation review](screenshots/final/workspace-remediation-review.png) | ![Postmortem studio](screenshots/final/workspace-postmortem-studio.png) |
+
 ---
 
 ## Architecture & Shared-State Flow
 
+```mermaid
+flowchart TD
+    U["Engineer / SRE"] <--> W["Next.js workspace · Vercel"]
+    W -->|"agent/run + current state"| C["CopilotKit Runtime · HttpAgent"]
+    C -->|"AG-UI request"| A["FastAPI · AGUIAdapter · Render"]
+    A -->|"SSE: text, tool events, state snapshot"| C
+    C -->|"Streamed events"| W
+    W <-->|"REST: sessions, evidence, state, decisions"| R["FastAPI REST routes"]
+    A <--> P["Pydantic AI · StateDeps"]
+    P <--> L["Gemini · optional OpenAI / Ollama"]
+    P <--> E["Typed investigation tools"]
+    E <--> S["In-memory EvidenceStore + investigation state"]
+    R <--> S
+    R --> F["Log parser · redaction"]
+    F --> S
+    R -.-> D["SQLAlchemy / Alembic · relational DB layer"]
+    classDef ui fill:#0f766e,stroke:#2dd4bf,color:#ffffff
+    classDef protocol fill:#1d4ed8,stroke:#60a5fa,color:#ffffff
+    classDef agent fill:#6d28d9,stroke:#a78bfa,color:#ffffff
+    classDef data fill:#92400e,stroke:#fbbf24,color:#ffffff
+    class U,W ui
+    class C,A,R protocol
+    class P,L,E agent
+    class S,F,D data
 ```
-┌────────────────────────────────────────────────────────────────────┐
-│                    Next.js 15 Frontend (Vercel)                    │
-│  - CopilotKit Runtime (/api/copilotkit -> HttpAgent)               │
-│  - Workspace: Investigator Chat | Overview | Evidence | Timeline   │
-└───────────────▲────────────────────────────────────▲───────────────┘
-                │ AG-UI SSE Stream (/agent)          │ REST Sync
-                │ TEXT_MESSAGE_CONTENT               │ PUT /api/investigation/state
-                │ TOOL_CALL_START / TOOL_CALL_RESULT │ POST /api/evidence/upload
-                │ STATE_SNAPSHOT                     │ GET /api/investigation/postmortem
-┌───────────────▼────────────────────────────────────▼───────────────┐
-│               FastAPI & Pydantic AI Backend (Render)               │
-│  - AGUIAdapter(agent=investigation_agent, deps=StateDeps)          │
-│  - Gemini 3.5 Flash-Lite (GoogleModel / GoogleProvider)            │
-│  - LogParser (secret redaction for JWTs, API keys, passwords)      │
-│  - EvidenceStore & Async SQLAlchemy / Alembic (Neon PostgreSQL)    │
-└────────────────────────────────────────────────────────────────────┘
-```
+
+The live workspace uses in-memory session state; the relational database layer is not a durable store for all active investigations.
 
 ### CopilotKit, AG-UI & Pydantic AI Integration
 1. **CopilotKit Runtime (`/api/copilotkit`)**: `frontend/src/app/api/copilotkit/route.ts` mounts `CopilotRuntime` with an `@ag-ui/client` `HttpAgent` pointing to the FastAPI `/agent` endpoint (`BACKEND_AGENT_URL` or `${NEXT_PUBLIC_API_URL}/agent`).
 2. **UI → Agent State Sync**: When an operator edits the incident title, severity, or affected service in the Overview panel, the frontend persists the update via `PUT /api/investigation/state?session_id=...` and sends the latest `InvestigationState` in subsequent CopilotKit `agent/run` requests. `AGUIAdapter` injects this state into `StateDeps[InvestigationState]`, and `@investigation_agent.instructions` exposes user edits on the next agent turn.
-3. **Agent → UI State Sync**: Agent tools (`search_logs`, `get_log_entry`, `summarize_log_patterns`, `update_investigation`, `add_hypothesis`, `propose_remediation`) mutate `ctx.deps.state`. The backend wraps `AGUIAdapter.run_stream()` to persist state and emit an AG-UI `STATE_SNAPSHOT` event before `RUN_FINISHED`, updating the Overview panel in real time.
+3. **Agent → UI State Sync**: Agent tools can retrieve evidence and update `ctx.deps.state`. The backend wraps `AGUIAdapter.run_stream()` to persist state and emit an AG-UI `STATE_SNAPSHOT` event before `RUN_FINISHED`, updating the Overview panel in real time.
+
+### Message and shared-state lifecycle
+
+```mermaid
+sequenceDiagram
+    actor User
+    participant UI as React workspace
+    participant CK as CopilotKit Runtime
+    participant API as FastAPI / AGUIAdapter
+    participant AI as Pydantic AI
+    User->>UI: Send investigation question
+    UI->>CK: agent/run with messages and state
+    CK->>API: AG-UI run request
+    API->>AI: Run agent with StateDeps
+    AI-->>API: Text and tool events
+    API-->>CK: SSE stream
+    CK-->>UI: Text and tool events
+    API-->>CK: STATE_SNAPSHOT before RUN_FINISHED
+    CK-->>UI: Updated investigation state
+    User->>UI: Edit incident metadata
+    UI->>API: PUT investigation/state
+    API-->>UI: Synchronized state
+    Note over UI,AI: Next agent run includes the latest state
+```
+
+### Eight registered agent tools
+
+| Tool | Responsibility |
+| --- | --- |
+| `search_logs` | Find relevant log evidence |
+| `get_log_entry` | Inspect a specific evidence record |
+| `summarize_log_patterns` | Summarize patterns across logs |
+| `correlate_services` | Connect evidence across service sources |
+| `update_investigation` | Update structured investigation information |
+| `add_hypothesis` | Record a root-cause hypothesis |
+| `propose_remediation` | Propose a plan for human review |
+| `generate_postmortem` | Generate a structured incident summary |
+
+### Codebase map
+
+| Area | Source |
+| --- | --- |
+| Workspace orchestration | [workspace/page.tsx](frontend/src/app/workspace/page.tsx) |
+| Chat and Markdown UI | [components/chat](frontend/src/components/chat) |
+| Evidence, replay and review UI | [components/workspace](frontend/src/components/workspace) |
+| CopilotKit bridge | [route.ts](frontend/src/app/api/copilotkit/route.ts) |
+| API and SSE lifecycle | [routes.py](backend/app/api/routes.py) |
+| Agent and tools | [incident_agent.py](backend/app/agents/incident_agent.py) |
+| Provider selection | [provider_factory.py](backend/app/agents/provider_factory.py) |
+| State schema | [incident.py](backend/app/schemas/incident.py) |
+| Parsing and evidence storage | [services](backend/app/services) |
+| Tests and automation | [backend/tests](backend/tests), [frontend/tests](frontend/tests), [CI](.github/workflows/ci.yml) |
 
 ---
 
@@ -79,8 +186,8 @@ TraceAnvaya is a full-stack AI incident investigation workspace built with **Nex
 
 ### 1. Environment Configuration
 ```bash
-git clone <repository_url>
-cd TraceAnvaya
+git clone https://github.com/manikumarkundena/traceanvaya.git
+cd traceanvaya
 cp .env.example .env
 cp frontend/.env.example frontend/.env.local
 ```
@@ -102,9 +209,10 @@ python -m uvicorn app.main:app --reload --port 8000
 ```
 
 ### 3. Frontend Setup
+In a separate terminal, from the repository root:
 ```bash
 cd frontend
-npm install
+npm ci
 npm run dev
 ```
 Open [http://localhost:3000](http://localhost:3000) for the landing page, or [http://localhost:3000/workspace](http://localhost:3000/workspace) for the investigation workspace.
@@ -140,7 +248,7 @@ Never expose `GEMINI_API_KEY`, `OPENAI_API_KEY`, or `DATABASE_URL` in `NEXT_PUBL
 
 ## Live AI, Optional Providers & Deterministic Demo Mode
 
-TraceAnvaya supports three server-configured inference modes (credentials and base URLs are never exposed to the browser):
+TraceAnvaya supports three server-configured model providers and a deterministic demo mode (credentials and base URLs are never exposed to the browser):
 
 1. **Google Gemini (Default Hosted Provider — Live-Verified)**:
    Set `AI_PROVIDER=gemini`, `AI_MODEL=gemini-3.5-flash-lite`, and `GEMINI_API_KEY` in `.env`. Live tool calling, AG-UI streaming, and bidirectional state sync have been verified end-to-end against Gemini.
